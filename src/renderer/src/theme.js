@@ -1,17 +1,17 @@
 import { createTheme } from '@mantine/core'
 
-export const pastelBlue = {
-  0: '#f1f5ff',
-  1: '#e0e9ff',
-  2: '#c5d6ff',
-  3: '#a6bcff',
-  4: '#87a0f0',
-  5: '#6e87e0',
-  6: '#5a72cf',
-  7: '#495da8',
-  8: '#3a4a84',
-  9: '#2c3866'
-}
+export const pastelBlue = [
+  '#f1f5ff',
+  '#e0e9ff',
+  '#c5d6ff',
+  '#a6bcff',
+  '#87a0f0',
+  '#6e87e0',
+  '#5a72cf',
+  '#495da8',
+  '#3a4a84',
+  '#2c3866'
+]
 
 export const theme = createTheme({
   primaryColor: 'pastelBlue',
