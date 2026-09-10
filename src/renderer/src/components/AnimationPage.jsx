@@ -166,16 +166,18 @@ export default function AnimationPage({ playlists }) {
               background:
                 'linear-gradient(135deg, rgba(20, 38, 77, 0.82) 0%, rgba(28, 60, 114, 0.78) 50%, rgba(18, 44, 90, 0.85) 100%)',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              padding: 16
             }}
           >
             <ActionIcon
               variant="light"
               color="pastelBlue"
               size="md"
-              title={isFullscreen ? 'Quitter le plein \u00e9cran' : 'Plein \u00e9cran'}
-              aria-label={isFullscreen ? 'Quitter le plein \u00e9cran' : 'Plein \u00e9cran'}
+              title={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+              aria-label={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
               onClick={handleFullscreen}
               style={{
                 position: 'absolute',
@@ -187,73 +189,77 @@ export default function AnimationPage({ playlists }) {
               <IconMaximize size={18} />
             </ActionIcon>
 
-            {currentTrack ? (
-              <Stack gap="xs" align="center">
-                <IconDeviceSpeaker size={48} color="var(--mantine-pastelBlue-4)" />
-                <Text c="white" fw={600} ta="center" px="md">
-                  {currentTrack.title}
-                </Text>
-                <Text c="dimmed" size="sm">
-                  {isPlaying ? 'Lecture en cours…' : 'En pause'}
-                </Text>
-              </Stack>
-            ) : (
-              <Stack gap="xs" align="center">
-                <IconDeviceSpeaker size={48} color="var(--mantine-color-dimmed)" />
-                <Text c="dimmed">
-                  {tracks.length === 0
-                    ? 'Sélectionnez une playlist avec des chansons'
-                    : 'Sélectionnez une chanson à lire'}
-                </Text>
-              </Stack>
-            )}
-          </Box>
-
-          <Group justify="center" gap="xs">
-            <ActionIcon
-              variant="light"
-              size="lg"
-              onClick={handlePrevious}
-              disabled={tracks.length === 0}
+            <Box
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <IconPlayerSkipBack size={20} />
-            </ActionIcon>
+              {currentTrack ? (
+                <Stack gap="xs" align="center">
+                  <IconDeviceSpeaker size={48} color="var(--mantine-pastelBlue-4)" />
+                  <Text c="white" fw={600} ta="center" px="md">
+                    {currentTrack.title}
+                  </Text>
+                  <Text c="dimmed" size="sm">
+                    {isPlaying ? 'Lecture en cours…' : 'En pause'}
+                  </Text>
+                </Stack>
+              ) : (
+                <Stack gap="xs" align="center">
+                  <IconDeviceSpeaker size={48} color="var(--mantine-color-dimmed)" />
+                  <Text c="dimmed">
+                    {tracks.length === 0
+                      ? 'Sélectionnez une playlist avec des chansons'
+                      : 'Sélectionnez une chanson à lire'}
+                  </Text>
+                </Stack>
+              )}
+            </Box>
 
-            {isPlaying ? (
-              <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={handlePause}>
-                <IconPlayerPause size={20} />
-              </ActionIcon>
-            ) : (
+            <Group justify="center" gap="xs" style={{ marginTop: 16 }}>
               <ActionIcon
-                variant="filled"
+                variant="light"
                 size="lg"
-                color="pastelBlue"
-                onClick={handlePlay}
+                onClick={handlePrevious}
                 disabled={tracks.length === 0}
               >
-                <IconPlayerPlay size={20} />
+                <IconPlayerSkipBack size={20} />
               </ActionIcon>
-            )}
 
-            <ActionIcon
-              variant="light"
-              size="lg"
-              color="red"
-              onClick={handleStop}
-              disabled={!isPlaying}
-            >
-              <IconPlayerStop size={20} />
-            </ActionIcon>
+              {isPlaying ? (
+                <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={handlePause}>
+                  <IconPlayerPause size={20} />
+                </ActionIcon>
+              ) : (
+                <ActionIcon
+                  variant="filled"
+                  size="lg"
+                  color="pastelBlue"
+                  onClick={handlePlay}
+                  disabled={tracks.length === 0}
+                >
+                  <IconPlayerPlay size={20} />
+                </ActionIcon>
+              )}
 
-            <ActionIcon
-              variant="light"
-              size="lg"
-              onClick={handleNext}
-              disabled={tracks.length === 0}
-            >
-              <IconPlayerSkipForward size={20} />
-            </ActionIcon>
-          </Group>
+              <ActionIcon
+                variant="light"
+                size="lg"
+                color="red"
+                onClick={handleStop}
+                disabled={!isPlaying}
+              >
+                <IconPlayerStop size={20} />
+              </ActionIcon>
+
+              <ActionIcon
+                variant="light"
+                size="lg"
+                onClick={handleNext}
+                disabled={tracks.length === 0}
+              >
+                <IconPlayerSkipForward size={20} />
+              </ActionIcon>
+            </Group>
+          </Box>
         </Stack>
       </Card>
     </Stack>
