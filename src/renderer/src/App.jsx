@@ -1,33 +1,67 @@
-import { AppShell, Burger, Tabs } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
-import Accueil from './components/Accueil'
+import { AppShell, Container, Tabs } from '@mantine/core'
+import { IconHome, IconPlaylist, IconDownload, IconDeviceSpeaker } from '@tabler/icons-react'
+import { useState } from 'react'
+import AccueilPage from './components/AccueilPage'
+import AnimationPage from './components/AnimationPage'
+import PlaylistsPage from './components/PlaylistsPage'
+import TelechargementPage from './components/TelechargementPage'
+import { initialPlaylists } from './data/mockData'
 
 function App() {
-  const [opened, { toggle }] = useDisclosure()
+  const [activeTab, setActiveTab] = useState('accueil')
+  const [playlists, setPlaylists] = useState(initialPlaylists)
 
   return (
-    <AppShell w={'100%'} header={{ height: 60 }} footer={{ height: 60 }}>
-      <AppShell.Header>
-        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-
-        <div>Logo</div>
-      </AppShell.Header>
-
+    <AppShell w="100vw" h="100vh" padding="md" layout="alt">
       <AppShell.Main>
-        <Tabs defaultValue="accueil" orientation="vertical" inverted>
-          <Tabs.List style={{ height: 'calc(100vh - 120px)' }}>
-            <Tabs.Tab value="accueil">Accueil</Tabs.Tab>
-            <Tabs.Tab value="telechargements">Téléchargements</Tabs.Tab>
-            <Tabs.Tab value="playlists">Playlists</Tabs.Tab>
-          </Tabs.List>
-          <Tabs.Panel value="accueil">
-            <Accueil />
-          </Tabs.Panel>
-          <Tabs.Panel value="telechargements">Messages tab content</Tabs.Panel>
-          <Tabs.Panel value="playlists">Settings tab content</Tabs.Panel>
-        </Tabs>
+        <Container fluid h="100%" p={0}>
+          <Tabs
+            value={activeTab}
+            onChange={setActiveTab}
+            orientation="vertical"
+            h="100%"
+            styles={{
+              root: { height: '100%' },
+              list: {
+                width: 220,
+                height: '100%',
+                alignItems: 'stretch'
+              }
+            }}
+          >
+            <Tabs.List>
+              <Tabs.Tab value="accueil" leftSection={<IconHome size={18} />}>
+                Accueil
+              </Tabs.Tab>
+              <Tabs.Tab value="playlists" leftSection={<IconPlaylist size={18} />}>
+                Playlists
+              </Tabs.Tab>
+              <Tabs.Tab value="telechargement" leftSection={<IconDownload size={18} />}>
+                Téléchargement
+              </Tabs.Tab>
+              <Tabs.Tab value="animation" leftSection={<IconDeviceSpeaker size={18} />}>
+                Animation
+              </Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="accueil" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+              <AccueilPage onNavigate={setActiveTab} />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="playlists" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+              <PlaylistsPage playlists={playlists} setPlaylists={setPlaylists} />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="telechargement" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+              <TelechargementPage playlists={playlists} />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="animation" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+              <AnimationPage playlists={playlists} />
+            </Tabs.Panel>
+          </Tabs>
+        </Container>
       </AppShell.Main>
-      <AppShell.Footer>Produced with ♥️ by Harkhenon</AppShell.Footer>
     </AppShell>
   )
 }
