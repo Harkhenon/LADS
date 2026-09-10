@@ -1,0 +1,189 @@
+import { Box, Group, Stack, Text } from '@mantine/core'
+import { IconEye, IconMusic } from '@tabler/icons-react'
+import { initialSearchResults } from '../data/mockData'
+import { testSearchYouTube } from '../data/testFunctions'
+import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
+import { useState } from 'react'
+import PropTypes from 'prop-types'
+import DownloadConfigForm from './DownloadConfigForm'
+
+const playlistShape = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired
+})
+
+TelechargementPage.propTypes = {
+  playlists: PropTypes.arrayOf(playlistShape).isRequired
+}
+
+export default function TelechargementPage({ playlists }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [searched, setSearched] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const [selectedVideo, setSelectedVideo] = useState(null)
+
+  const handleSearch = () => {
+    testSearchYouTube(query)
+    setResults(initialSearchResults)
+    setSearched(true)
+    setSelectedVideo(null)
+  }
+
+  return (
+    <Stack gap="md" h="100%">
+      <Box>
+        <Text fw={600} mb="xs">
+          Rechercher une vidéo sur YouTube
+        </Text>
+        <Group>
+          <TextInput
+            placeholder="Titre de la chanson, artiste, URL…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            style={{ flex: 1 }}
+          />
+          <Button onClick={handleSearch}>Rechercher</Button>
+        </Group>
+      </Box>
+
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
+        <Card withBorder shadow="sm" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+          <Text fw={600} mb="sm">
+            {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
+          </Text>
+          {results.length === 0 ? (
+            <Text c="dimmed" size="sm" ta="center" mt="xl">
+              {searched
+                ? 'Aucun résultat trouvé.'
+                : 'Lancez une recherche pour afficher les vidéos.'}
+            </Text>
+          ) : (
+            <Stack gap="xs">
+              {results.map((r) => (
+                <SearchResultItem
+                  key={r.id}
+                  result={r}
+                  selected={selectedVideo?.id === r.id}
+                  onSelect={() => setSelectedVideo(r)}
+                  onPreview={() => setPreview(r)}
+                />
+              ))}
+            </Stack>
+          )}
+        </Card>
+
+        <Card withBorder shadow="sm" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+          <Text fw={600} mb="sm">
+            Options de téléchargement
+          </Text>
+          <DownloadConfigForm playlists={playlists} selectedVideo={selectedVideo} />
+        </Card>
+      </SimpleGrid>
+
+      <VideoPreviewModal result={preview} onClose={() => setPreview(null)} />
+    </Stack>
+  )
+}
+
+const searchResultShape = PropTypes.shape({
+  id: PropTypes.string,
+  title: PropTypes.string,
+  channel: PropTypes.string,
+  duration: PropTypes.string,
+  url: PropTypes.string
+})
+
+SearchResultItem.propTypes = {
+  result: searchResultShape.isRequired,
+  selected: PropTypes.bool,
+  onSelect: PropTypes.func.isRequired,
+  onPreview: PropTypes.func.isRequired
+}
+
+function SearchResultItem({ result, selected, onSelect, onPreview }) {
+  return (
+    <Card
+      withBorder
+      padding="sm"
+      radius="md"
+      onClick={onSelect}
+      style={{
+        cursor: 'pointer',
+        backgroundColor: selected ? 'var(--mantine-pastelBlue-1)' : 'transparent',
+        borderColor: selected ? 'var(--mantine-pastelBlue-4)' : undefined
+      }}
+    >
+      <Group wrap="nowrap" justify="space-between">
+        <Group gap="sm" wrap="nowrap">
+          <IconMusic size={18} />
+          <Stack gap={2} style={{ minWidth: 0 }}>
+            <Text size="sm" fw={500} lineClamp={2}>
+              {result.title}
+            </Text>
+            <Text size="xs" c="dimmed">
+              {result.channel} · {result.duration}
+            </Text>
+          </Stack>
+        </Group>
+        <Group gap={4}>
+          <ActionIcon
+            variant="light"
+            color="pastelBlue"
+            onClick={(e) => {
+              e.stopPropagation()
+              onPreview()
+            }}
+            title="Aperçu de la vidéo"
+          >
+            <IconEye size={16} />
+          </ActionIcon>
+        </Group>
+      </Group>
+    </Card>
+  )
+}
+
+VideoPreviewModal.propTypes = {
+  result: searchResultShape,
+  onClose: PropTypes.func.isRequired
+}
+
+function VideoPreviewModal({ result, onClose }) {
+  return (
+    <Modal
+      opened={result !== null}
+      onClose={onClose}
+      title={result?.title ?? 'Aperçu'}
+      size="lg"
+      centered
+    >
+      <Stack>
+        <Text size="sm" c="dimmed">
+          {result?.channel} · {result?.duration}
+        </Text>
+        <Box
+          style={{
+            aspectRatio: '16 / 9',
+            backgroundColor: 'var(--mantine-color-dark-8)',
+            borderRadius: 'var(--mantine-radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Group gap="sm" c="dimmed">
+            <IconEye size={28} />
+            <Text c="white" size="sm">
+              Aperçu de la vidéo (lecteur intégré à venir)
+            </Text>
+          </Group>
+        </Box>
+        <Text size="xs" c="dimmed">
+          Lien : {result?.url}
+        </Text>
+      </Stack>
+    </Modal>
+  )
+}
