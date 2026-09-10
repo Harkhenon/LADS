@@ -25,3 +25,23 @@ export function testSearchYouTube(query) {
 export function testDownloadVideo(config) {
   console.log('[LADS test] Lancement téléchargement', config)
 }
+
+export function testPlayAnimation(playlistId, karaokeId) {
+  console.log('[LADS test] Lecture animation', { playlistId, karaokeId })
+}
+
+export function testPauseAnimation() {
+  console.log('[LADS test] Pause animation')
+}
+
+export function testStopAnimation() {
+  console.log('[LADS test] Stop animation')
+}
+
+export function testNextTrack(playlistId, karaokeId) {
+  console.log('[LADS test] Piste suivante', { playlistId, karaokeId })
+}
+
+export function testPreviousTrack(playlistId, karaokeId) {
+  console.log('[LADS test] Piste précédente', { playlistId, karaokeId })
+}
