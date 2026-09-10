@@ -49,7 +49,7 @@ export default function TelechargementPage({ playlists }) {
       </Box>
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
-        <Card withBorder shadow="sm" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+        <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
           <Text fw={600} mb="sm">
             {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
           </Text>
@@ -74,7 +74,7 @@ export default function TelechargementPage({ playlists }) {
           )}
         </Card>
 
-        <Card withBorder shadow="sm" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+        <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
           <Text fw={600} mb="sm">
             Options de téléchargement
           </Text>
@@ -111,8 +111,8 @@ function SearchResultItem({ result, selected, onSelect, onPreview }) {
       onClick={onSelect}
       style={{
         cursor: 'pointer',
-        backgroundColor: selected ? 'var(--mantine-pastelBlue-1)' : 'transparent',
-        borderColor: selected ? 'var(--mantine-pastelBlue-4)' : undefined
+        backgroundColor: selected ? 'rgba(120, 160, 240, 0.20)' : 'rgba(48, 74, 130, 0.18)',
+        borderColor: selected ? 'rgba(120, 160, 240, 0.45)' : 'rgba(120, 160, 240, 0.18)'
       }}
     >
       <Group wrap="nowrap" justify="space-between">
@@ -167,7 +167,7 @@ function VideoPreviewModal({ result, onClose }) {
           style={{
             aspectRatio: '16 / 9',
             background:
-              'linear-gradient(135deg, var(--mantine-pastelBlue-9) 0%, var(--mantine-softSky-9) 100%)',
+              'linear-gradient(135deg, rgba(20, 38, 77, 0.85) 0%, rgba(28, 60, 114, 0.85) 100%)',
             borderRadius: 'var(--mantine-radius-md)',
             display: 'flex',
             alignItems: 'center',

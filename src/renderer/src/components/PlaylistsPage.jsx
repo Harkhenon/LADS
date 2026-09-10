@@ -115,7 +115,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
 
       <Grid grow gutter="md" style={{ flex: 1, minHeight: 0 }}>
         <Grid.Col span={{ base: 12, md: 4 }} style={{ minHeight: 0 }}>
-          <Card withBorder shadow="sm" p="0" h="100%" style={{ overflow: 'hidden' }}>
+          <Card className="glass-card" p="0" h="100%" style={{ overflow: 'hidden' }}>
             <ScrollArea.Autosize mah="100%" type="scroll">
               <Stack gap={0}>
                 {playlists.length === 0 ? (
@@ -140,7 +140,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 8 }} style={{ minHeight: 0 }}>
-          <Card withBorder shadow="sm" p="lg" h="100%" style={{ overflow: 'hidden' }}>
+          <Card className="glass-card" p="lg" h="100%" style={{ overflow: 'hidden' }}>
             {selected ? (
               <Box>
                 <Group justify="space-between" mb="xs">
@@ -208,7 +208,7 @@ function PlaylistListItem({ playlist, active, onSelect, onEdit, onDelete }) {
       py="sm"
       style={{
         cursor: 'pointer',
-        backgroundColor: active ? 'var(--mantine-pastelBlue-1)' : 'transparent'
+        backgroundColor: active ? 'rgba(120, 160, 240, 0.18)' : 'transparent'
       }}
       onClick={onSelect}
     >

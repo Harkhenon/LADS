@@ -73,10 +73,10 @@ export const theme = createTheme({
     },
     Card: {
       defaultProps: {
-        shadow: 'sm',
+        shadow: 'none',
         radius: 'lg',
         padding: 'md',
-        withBorder: true
+        withBorder: false
       }
     },
     Badge: {

@@ -30,7 +30,7 @@ export default function AccueilPage({ onNavigate }) {
   return (
     <Stack gap="lg" align="center" justify="center" h="100%" style={{ overflowY: 'auto' }}>
       <Card
-        withBorder
+        className="glass-card"
         shadow="xl"
         radius="lg"
         p="xl"
@@ -80,8 +80,7 @@ export default function AccueilPage({ onNavigate }) {
 
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" w="100%" maw={640}>
         <Card
-          withBorder
-          shadow="sm"
+          className="glass-card"
           radius="md"
           p="lg"
           onClick={() => onNavigate?.('playlists')}
@@ -99,8 +98,7 @@ export default function AccueilPage({ onNavigate }) {
         </Card>
 
         <Card
-          withBorder
-          shadow="sm"
+          className="glass-card"
           radius="md"
           p="lg"
           onClick={() => onNavigate?.('telechargement')}

@@ -124,7 +124,7 @@ export default function AnimationPage({ playlists }) {
         <Title order={3}>Animation</Title>
       </Group>
 
-      <Card withBorder shadow="sm" p="md" radius="md">
+      <Card className="glass-card" p="md" radius="md">
         <Stack gap="md">
           <Select
             label="Playlist à animer"
@@ -153,7 +153,7 @@ export default function AnimationPage({ playlists }) {
         </Stack>
       </Card>
 
-      <Card withBorder shadow="sm" p="lg" radius="md" style={{ flex: 1, minHeight: 0 }}>
+      <Card className="glass-card" p="lg" radius="md" style={{ flex: 1, minHeight: 0 }}>
         <Stack gap="md" h="100%">
           <Box
             ref={stageRef}
@@ -164,7 +164,7 @@ export default function AnimationPage({ playlists }) {
               position: 'relative',
               borderRadius: 'var(--mantine-radius-md)',
               background:
-                'linear-gradient(135deg, var(--mantine-pastelBlue-9) 0%, var(--mantine-pastelBlue-8) 55%, var(--mantine-softSky-8) 100%)',
+                'linear-gradient(135deg, rgba(20, 38, 77, 0.82) 0%, rgba(28, 60, 114, 0.78) 50%, rgba(18, 44, 90, 0.85) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
