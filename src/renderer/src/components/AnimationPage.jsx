@@ -1,6 +1,7 @@
-import { ActionIcon, Box, Button, Card, Group, Select, Stack, Text, Title } from '@mantine/core'
+import { ActionIcon, Box, Card, Group, Select, Stack, Text, Title } from '@mantine/core'
 import {
   IconDeviceSpeaker,
+  IconMaximize,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlayerSkipBack,
@@ -8,7 +9,7 @@ import {
   IconPlayerStop,
   IconPlaylist
 } from '@tabler/icons-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import {
   testNextTrack,
@@ -39,6 +40,8 @@ export default function AnimationPage({ playlists }) {
   const [playlistId, setPlaylistId] = useState(playlists[0]?.id ?? '')
   const [trackId, setTrackId] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const stageRef = useRef(null)
 
   const playlist = useMemo(
     () => playlists.find((p) => p.id === playlistId) ?? null,
@@ -101,6 +104,20 @@ export default function AnimationPage({ playlists }) {
     if (isPlaying) testPlayAnimation(playlistId, prev.id)
   }
 
+  const handleFullscreen = () => {
+    const el = stageRef.current
+    if (!el) return
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    } else {
+      el.requestFullscreen().catch(() => {})
+    }
+  }
+
+  const handleFullscreenChange = () => {
+    setIsFullscreen(document.fullscreenElement === stageRef.current)
+  }
+
   return (
     <Stack gap="md" h="100%">
       <Group justify="space-between">
@@ -139,9 +156,12 @@ export default function AnimationPage({ playlists }) {
       <Card withBorder shadow="sm" p="lg" radius="md" style={{ flex: 1, minHeight: 0 }}>
         <Stack gap="md" h="100%">
           <Box
+            ref={stageRef}
+            onFullscreenChange={handleFullscreenChange}
             style={{
               flex: 1,
               minHeight: 200,
+              position: 'relative',
               borderRadius: 'var(--mantine-radius-md)',
               backgroundColor: 'var(--mantine-color-dark-8)',
               display: 'flex',
@@ -149,6 +169,23 @@ export default function AnimationPage({ playlists }) {
               justifyContent: 'center'
             }}
           >
+            <ActionIcon
+              variant="light"
+              color="pastelBlue"
+              size="md"
+              title={isFullscreen ? 'Quitter le plein \u00e9cran' : 'Plein \u00e9cran'}
+              aria-label={isFullscreen ? 'Quitter le plein \u00e9cran' : 'Plein \u00e9cran'}
+              onClick={handleFullscreen}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                zIndex: 2
+              }}
+            >
+              <IconMaximize size={18} />
+            </ActionIcon>
+
             {currentTrack ? (
               <Stack gap="xs" align="center">
                 <IconDeviceSpeaker size={48} color="var(--mantine-pastelBlue-4)" />
@@ -215,25 +252,6 @@ export default function AnimationPage({ playlists }) {
             >
               <IconPlayerSkipForward size={20} />
             </ActionIcon>
-          </Group>
-
-          <Group justify="center" gap="xs">
-            <Button
-              variant={isPlaying ? 'light' : 'filled'}
-              color="pastelBlue"
-              leftSection={isPlaying ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
-              onClick={isPlaying ? handlePause : handlePlay}
-              disabled={tracks.length === 0}
-            >
-              {isPlaying ? 'Pause' : 'Lecture'}
-            </Button>
-            <Button
-              variant="default"
-              leftSection={<IconPlayerStop size={16} />}
-              onClick={handleStop}
-            >
-              Stop
-            </Button>
           </Group>
         </Stack>
       </Card>
