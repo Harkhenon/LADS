@@ -163,7 +163,8 @@ export default function AnimationPage({ playlists }) {
               minHeight: 200,
               position: 'relative',
               borderRadius: 'var(--mantine-radius-md)',
-              backgroundColor: 'var(--mantine-color-dark-8)',
+              background:
+                'linear-gradient(135deg, var(--mantine-pastelBlue-9) 0%, var(--mantine-pastelBlue-8) 55%, var(--mantine-softSky-8) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'

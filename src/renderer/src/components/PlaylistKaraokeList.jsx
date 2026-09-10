@@ -47,10 +47,14 @@ export default function PlaylistKaraokeList({ playlist, onUpdateKaraoke, onDelet
                   {kara.title}
                 </Text>
                 <Group gap="xs">
-                  <Badge size="xs" variant="light" color="pastelBlue">
+                  <Badge
+                    size="xs"
+                    variant="light"
+                    color={kara.format === 'mp3' ? 'lavenderMist' : 'softSky'}
+                  >
                     {kara.format}
                   </Badge>
-                  <Badge size="xs" variant="light" color="gray">
+                  <Badge size="xs" variant="light" color="rosePetal">
                     {kara.resolution}
                   </Badge>
                   <Text size="xs" c="dimmed">

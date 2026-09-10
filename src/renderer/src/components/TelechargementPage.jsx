@@ -166,7 +166,8 @@ function VideoPreviewModal({ result, onClose }) {
         <Box
           style={{
             aspectRatio: '16 / 9',
-            backgroundColor: 'var(--mantine-color-dark-8)',
+            background:
+              'linear-gradient(135deg, var(--mantine-pastelBlue-9) 0%, var(--mantine-softSky-9) 100%)',
             borderRadius: 'var(--mantine-radius-md)',
             display: 'flex',
             alignItems: 'center',
