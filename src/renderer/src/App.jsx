@@ -1,12 +1,13 @@
 import { AppShell, Container, Tabs } from '@mantine/core'
-import { IconPlaylist, IconDownload } from '@tabler/icons-react'
+import { IconHome, IconPlaylist, IconDownload } from '@tabler/icons-react'
 import { useState } from 'react'
+import AccueilPage from './components/AccueilPage'
 import PlaylistsPage from './components/PlaylistsPage'
 import TelechargementPage from './components/TelechargementPage'
 import { initialPlaylists } from './data/mockData'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('playlists')
+  const [activeTab, setActiveTab] = useState('accueil')
   const [playlists, setPlaylists] = useState(initialPlaylists)
 
   return (
@@ -28,6 +29,9 @@ function App() {
             }}
           >
             <Tabs.List>
+              <Tabs.Tab value="accueil" leftSection={<IconHome size={18} />}>
+                Accueil
+              </Tabs.Tab>
               <Tabs.Tab value="playlists" leftSection={<IconPlaylist size={18} />}>
                 Playlists
               </Tabs.Tab>
@@ -35,6 +39,10 @@ function App() {
                 Téléchargement
               </Tabs.Tab>
             </Tabs.List>
+
+            <Tabs.Panel value="accueil" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+              <AccueilPage onNavigate={setActiveTab} />
+            </Tabs.Panel>
 
             <Tabs.Panel value="playlists" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
               <PlaylistsPage playlists={playlists} setPlaylists={setPlaylists} />
