@@ -10,8 +10,9 @@ import {
   Text,
   Title
 } from '@mantine/core'
-import { IconHeart, IconHome, IconMusic, IconPlaylist } from '@tabler/icons-react'
-import { useState } from 'react'
+import { notifications } from '@mantine/notifications'
+import { IconHeart, IconHome, IconMusic, IconPlaylist, IconInfoCircle } from '@tabler/icons-react'
+import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
 AccueilPage.propTypes = {
@@ -20,12 +21,41 @@ AccueilPage.propTypes = {
 
 export default function AccueilPage({ onNavigate }) {
   const [infos] = useState(() => window.base?.appInfos?.() ?? null)
+  const [update, setUpdate] = useState(null)
 
   const name = infos?.name ?? 'LADS'
   const version = infos?.version ?? '0.0.0'
   const description = infos?.description ?? ''
   const author = infos?.author ?? ''
   const homepage = infos?.homepage ?? '#'
+
+  useEffect(() => {
+    fetch('https://api.harkhenon.dev/api/lads/version')
+      .then((data) => {
+        return data.json()
+      })
+      .then((data) => {
+        setUpdate(data)
+      })
+      .catch((error) => {
+        console.error(error)
+      })
+  }, [])
+
+  const handleUpdate = () => {
+    if (version !== update?.version) {
+      notifications.show({
+        title: `Une mise à jour est disponible (${version})`,
+        message: `Le logiciel va se mettre à jour`,
+        icon: <IconInfoCircle />
+      })
+    } else {
+      notifications.show({
+        title: `Aucune mise à jour disponible`,
+        icon: <IconInfoCircle />
+      })
+    }
+  }
 
   return (
     <Stack gap="lg" align="center" justify="center" h="100%" style={{ overflowY: 'auto' }}>
@@ -72,7 +102,7 @@ export default function AccueilPage({ onNavigate }) {
             </Badge>
           </Group>
 
-          <Button variant="light" color="pastelBlue">
+          <Button variant="light" color="pastelBlue" onClick={handleUpdate}>
             Vérifier les mises à jour
           </Button>
         </Stack>
