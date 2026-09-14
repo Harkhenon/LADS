@@ -3,6 +3,9 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 import packagejson from '../../package.json'
 
+const nonceArg = process.argv.find((arg) => arg.startsWith('--csp-nonce='))
+const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
+
 // Custom APIs for renderer
 const api = {}
 
@@ -15,7 +18,8 @@ const base = {
     main: packagejson.main,
     author: packagejson.author,
     homepage: packagejson.homepage
-  })
+  }),
+  nonce: nonceValue
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
