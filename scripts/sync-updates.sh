@@ -4,14 +4,14 @@
 # À exécuter sur harkhenon.dev (par cron, systemd timer ou manuellement).
 #
 # Usage :
-#   ./sync-updates.sh /var/www/harkhenon.dev/lads
+#   ./sync-updates.sh /var/www/api.harkhenon.dev/lads
 #
 # Prérequis : curl, jq, bash
 
 set -euo pipefail
 
 REPO="Harkhenon/LADS"
-DEST="${1:-/var/www/harkhenon.dev/lads}"
+DEST="${1:-/var/www/api.harkhenon.dev/lads}"
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq est requis : apt install jq" >&2

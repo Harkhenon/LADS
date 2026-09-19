@@ -43,7 +43,7 @@ Pour toute question ou problème, contactez :
 
 ## 🔄 Mises à jour automatiques
 
-LADS vérifie les mises à jour depuis `https://harkhenon.dev/lads` (provider generic d'electron-updater).
+LADS vérifie les mises à jour depuis `https://api.harkhenon.dev/lads` (provider generic d'electron-updater).
 
 ### Chaîne de publication
 
@@ -54,12 +54,12 @@ tag git (v*) ──▶ GitHub Actions ──▶ GitHub Release (exe + latest.yml
         scripts/sync-updates.sh (sur harkhenon.dev)
                         │
                         ▼
-        https://harkhenon.dev/lads ──▶ electron-updater (app)
+        https://api.harkhenon.dev/lads ──▶ electron-updater (app)
 ```
 
 1. **CI** : à chaque push d'un tag `v*`, le workflow `.github/workflows/release.yaml` build l'installeur Windows et publie `lads-<version>-setup.exe` + `latest.yml` sur une GitHub Release.
 2. **Serveur** : `scripts/sync-updates.sh` télécharge les assets de la dernière release GitHub vers le dossier servi par le serveur web (cron recommandé).
-3. **App** : au démarrage (et via l'onglet Accueil), l'app interroge `https://harkhenon.dev/lads/latest.yml` et propose le téléchargement/la mise à jour.
+3. **App** : au démarrage (et via l'onglet Accueil), l'app interroge `https://api.harkhenon.dev/lads/latest.yml` et propose le téléchargement/la mise à jour.
 
 ### Publier une nouvelle version
 
@@ -71,5 +71,5 @@ npm version patch   # ou minor / major
 git push origin main --tags   # depuis dev : git push origin dev --tags
 
 # 3. Sur harkhenon.dev, synchroniser le serveur
-./scripts/sync-updates.sh /var/www/harkhenon.dev/lads
+./scripts/sync-updates.sh /var/www/api.harkhenon.dev/lads
 ```
