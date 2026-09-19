@@ -33,6 +33,7 @@ linux:
   maintainer: isoka33@gmail.com
   category: Utility
   artifactName: ${name}-${version}.${ext}
+  syncDesktopName: true
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
