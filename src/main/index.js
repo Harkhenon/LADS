@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import crypto from 'node:crypto'
+import { initUpdater } from './updater'
 
 const nonce = crypto.randomBytes(16).toString('base64')
 
@@ -57,6 +58,8 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  initUpdater()
 
   createWindow()
 

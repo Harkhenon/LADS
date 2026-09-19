@@ -1,13 +1,32 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 import packagejson from '../../package.json'
+
+const UPDATE_CHANNELS = {
+  event: 'lads:update-event',
+  check: 'lads:check-for-updates',
+  download: 'lads:download-update',
+  install: 'lads:quit-and-install'
+}
 
 const nonceArg = process.argv.find((arg) => arg.startsWith('--csp-nonce='))
 const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
 
 // Custom APIs for renderer
 const api = {}
+
+// Update APIs for renderer
+const updater = {
+  checkForUpdates: () => ipcRenderer.invoke(UPDATE_CHANNELS.check),
+  downloadUpdate: () => ipcRenderer.invoke(UPDATE_CHANNELS.download),
+  quitAndInstall: () => ipcRenderer.invoke(UPDATE_CHANNELS.install),
+  onUpdateEvent: (callback) => {
+    const listener = (_event, payload) => callback(payload)
+    ipcRenderer.on(UPDATE_CHANNELS.event, listener)
+    return () => ipcRenderer.removeListener(UPDATE_CHANNELS.event, listener)
+  }
+}
 
 const base = {
   appVersion: () => packagejson.version,
@@ -30,6 +49,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('base', base)
+    contextBridge.exposeInMainWorld('updater', updater)
   } catch (error) {
     console.error(error)
   }
@@ -37,4 +57,5 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   window.api = api
   window.base = base
+  window.updater = updater
 }
