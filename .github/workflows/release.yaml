@@ -10,10 +10,20 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build-cmd: npx electron-builder --win --publish never
+          - os: ubuntu-latest
+            build-cmd: npx electron-builder --linux --publish never
+
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,19 +40,23 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Build Windows installer
-        run: npx electron-builder --win --publish never
+      - name: Build installer
+        run: ${{ matrix.build-cmd }}
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view "$GITHUB_REF_NAME"; then
-            gh release upload "$GITHUB_REF_NAME" dist/lads-*-setup.exe dist/latest.yml --clobber
-          else
+          if ! gh release view "$GITHUB_REF_NAME"; then
             gh release create "$GITHUB_REF_NAME" \
-              dist/lads-*-setup.exe \
-              dist/latest.yml \
               --title "$GITHUB_REF_NAME" \
-              --generate-notes
+              --generate-notes || true
           fi
+          ARTIFACTS=$(find dist -maxdepth 1 -type f ! -name 'builder-debug.yml')
+          for attempt in 1 2 3 4 5; do
+            if gh release upload "$GITHUB_REF_NAME" $ARTIFACTS --clobber; then
+              exit 0
+            fi
+            sleep 15
+          done
+          exit 1
