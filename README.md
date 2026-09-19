@@ -38,3 +38,38 @@ Téléchargez la dernière version de LADS depuis les **[releases GitHub](https:
 Pour toute question ou problème, contactez :
 - **Email** : [isoka33@gmail.com](mailto:isoka33@gmail.com)
 - **Site web** : [https://harkhenon.dev](https://harkhenon.dev)
+
+---
+
+## 🔄 Mises à jour automatiques
+
+LADS vérifie les mises à jour depuis `https://harkhenon.dev/lads` (provider generic d'electron-updater).
+
+### Chaîne de publication
+
+```
+tag git (v*) ──▶ GitHub Actions ──▶ GitHub Release (exe + latest.yml)
+                        │
+                        ▼
+        scripts/sync-updates.sh (sur harkhenon.dev)
+                        │
+                        ▼
+        https://harkhenon.dev/lads ──▶ electron-updater (app)
+```
+
+1. **CI** : à chaque push d'un tag `v*`, le workflow `.github/workflows/release.yaml` build l'installeur Windows et publie `lads-<version>-setup.exe` + `latest.yml` sur une GitHub Release.
+2. **Serveur** : `scripts/sync-updates.sh` télécharge les assets de la dernière release GitHub vers le dossier servi par le serveur web (cron recommandé).
+3. **App** : au démarrage (et via l'onglet Accueil), l'app interroge `https://harkhenon.dev/lads/latest.yml` et propose le téléchargement/la mise à jour.
+
+### Publier une nouvelle version
+
+```bash
+# 1. Mettre à jour la version dans package.json
+npm version patch   # ou minor / major
+
+# 2. Pousser le tag (déclenche le build + la release)
+git push origin main --tags   # depuis dev : git push origin dev --tags
+
+# 3. Sur harkhenon.dev, synchroniser le serveur
+./scripts/sync-updates.sh /var/www/harkhenon.dev/lads
+```
