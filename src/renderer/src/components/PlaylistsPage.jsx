@@ -14,13 +14,7 @@ import {
 import { IconDots, IconEdit, IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
-import {
-  testAddPlaylist,
-  testDeletePlaylist,
-  testDeleteKaraoke,
-  testUpdateKaraoke,
-  testUpdatePlaylist
-} from '../data/testFunctions'
+import { testDeleteKaraoke, testUpdateKaraoke } from '../data/testFunctions'
 import PlaylistFormModal from './PlaylistFormModal'
 import PlaylistKaraokeList from './PlaylistKaraokeList'
 
@@ -56,11 +50,11 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     setFormOpened(true)
   }
 
-  const handlePlaylistSubmit = (values) => {
+  const handlePlaylistSubmit = async (values) => {
     if (editingPlaylist) {
       const updated = { ...editingPlaylist, ...values }
       setPlaylists((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-      testUpdatePlaylist(updated)
+      await window.playlists.update([...playlists, updated])
     } else {
       const created = {
         id: `pl-${playlistCounter++}`,
@@ -70,7 +64,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
       }
       setPlaylists((prev) => [...prev, created])
       setSelectedId(created.id)
-      testAddPlaylist(created)
+      await window.playlists.update([...playlists, created])
     }
     setFormOpened(false)
     setEditingPlaylist(null)
@@ -81,7 +75,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     if (selectedId === id) {
       setSelectedId(null)
     }
-    testDeletePlaylist(id)
+    window.playlists.update(playlists.filter((p) => p.id !== id))
   }
 
   const handleUpdateKaraoke = (karaId, updated) => {

@@ -10,8 +10,20 @@ const UPDATE_CHANNELS = {
   install: 'lads:quit-and-install'
 }
 
+const PLAYLISTS_CHANNEL = {
+  read: 'playlists:read',
+  update: 'playlists:update'
+}
+
 const nonceArg = process.argv.find((arg) => arg.startsWith('--csp-nonce='))
 const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
+
+// Playlists APIs for renderer
+
+const playlists = {
+  read: () => ipcRenderer.invoke(PLAYLISTS_CHANNEL.read),
+  update: (playlists) => ipcRenderer.invoke(PLAYLISTS_CHANNEL.update, playlists)
+}
 
 // Custom APIs for renderer
 const api = {}
@@ -50,6 +62,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('base', base)
     contextBridge.exposeInMainWorld('updater', updater)
+    contextBridge.exposeInMainWorld('playlists', playlists)
   } catch (error) {
     console.error(error)
   }

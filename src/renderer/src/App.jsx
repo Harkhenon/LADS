@@ -1,15 +1,20 @@
 import { AppShell, Container, Tabs } from '@mantine/core'
 import { IconHome, IconPlaylist, IconDownload, IconDeviceSpeaker } from '@tabler/icons-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AccueilPage from './components/AccueilPage'
 import AnimationPage from './components/AnimationPage'
 import PlaylistsPage from './components/PlaylistsPage'
 import TelechargementPage from './components/TelechargementPage'
-import { initialPlaylists } from './data/mockData'
 
 function App() {
   const [activeTab, setActiveTab] = useState('accueil')
-  const [playlists, setPlaylists] = useState(initialPlaylists)
+  const [playlists, setPlaylists] = useState(null)
+
+  useEffect(() => {
+    if (playlists === null) {
+      ;(async () => setPlaylists(await window.playlists.read()))()
+    }
+  }, [])
 
   return (
     <AppShell w="100vw" h="100vh" padding="md" layout="alt">
