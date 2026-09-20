@@ -54,7 +54,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     if (editingPlaylist) {
       const updated = { ...editingPlaylist, ...values }
       setPlaylists((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-      await window.playlists.update([...playlists, updated])
+      await window.playlists.update(playlists.map((p) => (p.id === updated.id ? updated : p)))
     } else {
       const created = {
         id: `pl-${playlistCounter + playlists.length}`,
