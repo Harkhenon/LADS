@@ -44,7 +44,9 @@
     "electron-updater": "^6.3.9",
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "youtubei.js": "^18.0.0",
+    "yt-dlp-wrap": "^2.3.12"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^2.1.0",

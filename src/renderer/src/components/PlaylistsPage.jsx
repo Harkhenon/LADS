@@ -57,7 +57,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
       await window.playlists.update([...playlists, updated])
     } else {
       const created = {
-        id: `pl-${playlistCounter++}`,
+        id: `pl-${playlistCounter + playlists.length}`,
         name: values.name,
         description: values.description,
         karaoke: []
