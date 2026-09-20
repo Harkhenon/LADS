@@ -15,8 +15,16 @@ const PLAYLISTS_CHANNEL = {
   update: 'playlists:update'
 }
 
+const YOUTUBE_CHANNEL = {
+  search: 'youtube:search'
+}
+
 const nonceArg = process.argv.find((arg) => arg.startsWith('--csp-nonce='))
 const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
+
+const youtube = {
+  search: (texte) => ipcRenderer.invoke(YOUTUBE_CHANNEL.search, texte)
+}
 
 // Playlists APIs for renderer
 
@@ -63,6 +71,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('base', base)
     contextBridge.exposeInMainWorld('updater', updater)
     contextBridge.exposeInMainWorld('playlists', playlists)
+    contextBridge.exposeInMainWorld('youtube', youtube)
   } catch (error) {
     console.error(error)
   }

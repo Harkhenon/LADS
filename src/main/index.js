@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import crypto from 'node:crypto'
 import { initUpdater } from './updater'
 import registerPlaylistsHandles from './playlists'
+import youtube from './youtube'
 
 const nonce = crypto.randomBytes(16).toString('base64')
 
@@ -62,6 +63,7 @@ app.whenReady().then(() => {
 
   initUpdater()
   registerPlaylistsHandles()
+  youtube()
 
   createWindow()
 

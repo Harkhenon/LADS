@@ -1,6 +1,5 @@
 import { Box, Group, Stack, Text } from '@mantine/core'
 import { IconEye, IconMusic } from '@tabler/icons-react'
-import { initialSearchResults } from '../data/mockData'
 import { testSearchYouTube } from '../data/testFunctions'
 import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
 import { useState } from 'react'
@@ -23,9 +22,9 @@ export default function TelechargementPage({ playlists }) {
   const [preview, setPreview] = useState(null)
   const [selectedVideo, setSelectedVideo] = useState(null)
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     testSearchYouTube(query)
-    setResults(initialSearchResults)
+    setResults(await window.youtube.search(query))
     setSearched(true)
     setSelectedVideo(null)
   }
@@ -91,6 +90,7 @@ const searchResultShape = PropTypes.shape({
   id: PropTypes.string,
   title: PropTypes.string,
   channel: PropTypes.string,
+  author: PropTypes.objectOf,
   duration: PropTypes.string,
   url: PropTypes.string
 })
@@ -123,7 +123,7 @@ function SearchResultItem({ result, selected, onSelect, onPreview }) {
               {result.title}
             </Text>
             <Text size="xs" c="dimmed">
-              {result.channel} · {result.duration}
+              {result.author.name} · {result.duration}
             </Text>
           </Stack>
         </Group>
@@ -173,16 +173,23 @@ function VideoPreviewModal({ result, onClose }) {
             alignItems: 'center',
             justifyContent: 'center'
           }}
+          className="iframe"
         >
-          <Group gap="sm" c="dimmed">
-            <IconEye size={28} />
-            <Text c="white" size="sm">
-              Aperçu de la vidéo (lecteur intégré à venir)
-            </Text>
-          </Group>
+          <iframe
+            src={result?.url}
+            title="Lecteur vidéo YouTube"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          ></iframe>
         </Box>
         <Text size="xs" c="dimmed">
-          Lien : {result?.url}
+          Lien :{' '}
+          <a
+            href={`https://youtube.com/watch?v=${result?.id}`}
+            rel="noreferer noreferrer"
+            target="_blank"
+          >{`https://youtube.com/watch?v=${result?.id}`}</a>
         </Text>
       </Stack>
     </Modal>
