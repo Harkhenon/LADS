@@ -18,8 +18,6 @@ import { testDeleteKaraoke, testUpdateKaraoke } from '../data/testFunctions'
 import PlaylistFormModal from './PlaylistFormModal'
 import PlaylistKaraokeList from './PlaylistKaraokeList'
 
-let playlistCounter = 100
-
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
@@ -57,7 +55,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
       await window.playlists.update(playlists.map((p) => (p.id === updated.id ? updated : p)))
     } else {
       const created = {
-        id: `pl-${playlistCounter + playlists.length}`,
+        id: `pl-${crypto.randomUUID()}`,
         name: values.name,
         description: values.description,
         karaoke: []

@@ -1,4 +1,4 @@
-import { Box, Group, Stack, Text } from '@mantine/core'
+import { Box, Group, Image, Stack, Text } from '@mantine/core'
 import { IconEye, IconMusic } from '@tabler/icons-react'
 import { testSearchYouTube } from '../data/testFunctions'
 import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
@@ -91,6 +91,7 @@ const searchResultShape = PropTypes.shape({
   title: PropTypes.string,
   channel: PropTypes.string,
   author: PropTypes.objectOf,
+  thumbnails: PropTypes.arrayOf,
   duration: PropTypes.string,
   url: PropTypes.string
 })
@@ -117,7 +118,7 @@ function SearchResultItem({ result, selected, onSelect, onPreview }) {
     >
       <Group wrap="nowrap" justify="space-between">
         <Group gap="sm" wrap="nowrap">
-          <IconMusic size={18} />
+          <Image src={result?.thumbnails[0] ?? ''} className="yt-thumbnail" />
           <Stack gap={2} style={{ minWidth: 0 }}>
             <Text size="sm" fw={500} lineClamp={2}>
               {result.title}
@@ -161,7 +162,7 @@ function VideoPreviewModal({ result, onClose }) {
     >
       <Stack>
         <Text size="sm" c="dimmed">
-          {result?.channel} · {result?.duration}
+          {result?.author.name} · {result?.duration}
         </Text>
         <Box
           style={{
