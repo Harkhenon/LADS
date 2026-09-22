@@ -3,7 +3,9 @@ import { is } from '@electron-toolkit/utils'
 import { mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import crypto from 'node:crypto'
-import YTDlpWrap from 'yt-dlp-wrap'
+import YTDlpWrapModule from 'yt-dlp-wrap'
+
+const YTDlpWrap = YTDlpWrapModule.default ?? YTDlpWrapModule
 
 const YT_DLP_CHANNELS = {
   event: 'lads:ytdlp-event',
