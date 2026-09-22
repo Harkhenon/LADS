@@ -94,7 +94,7 @@ export default function AnimationStage({
       return
     }
     setCurrentTime(video.currentTime)
-    setProgress(video.duration ? (video.currentTime / video.duration) * 100 : 0)
+    setProgress(video.duration ? Math.round((video.currentTime / video.duration) * 1000) / 10 : 0)
   }
 
   const handleSeek = (value) => {
@@ -140,6 +140,7 @@ export default function AnimationStage({
         style={{
           flex: 1,
           width: '100%',
+          minHeight: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -161,7 +162,8 @@ export default function AnimationStage({
               maxWidth: '100%',
               maxHeight: '100%',
               width: track?.format === 'mp3' ? 'auto' : '100%',
-              height: '100%'
+              height: 'auto',
+              objectFit: 'contain'
             }}
           />
         ) : (
@@ -184,7 +186,14 @@ export default function AnimationStage({
               {formatTime(duration)}
             </Text>
           </Group>
-          <Slider value={progress} onChange={handleSeek} color="pastelBlue" size="sm" />
+          <Slider
+            value={progress}
+            onChange={handleSeek}
+            color="pastelBlue"
+            size="sm"
+            label={(value) => formatTime((value / 100) * duration)}
+            labelTransitionProps={{ transition: 'skew-down', duration: 150 }}
+          />
         </Stack>
       )}
 
