@@ -1,10 +1,13 @@
 import { Box, Group, Image, Stack, Text } from '@mantine/core'
-import { IconEye, IconMusic } from '@tabler/icons-react'
+import { IconEye } from '@tabler/icons-react'
 import { testSearchYouTube } from '../data/testFunctions'
 import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import DownloadConfigForm from './DownloadConfigForm'
+import DownloadQueuePanel from './download/DownloadQueuePanel'
+import YtDlpBinaryStatus from './download/YtDlpBinaryStatus'
+import useDownloads from '../hooks/useDownloads'
 
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -16,6 +19,7 @@ TelechargementPage.propTypes = {
 }
 
 export default function TelechargementPage({ playlists }) {
+  const { downloads, startDownload, cancelDownload, removeDownload } = useDownloads()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
@@ -31,6 +35,7 @@ export default function TelechargementPage({ playlists }) {
 
   return (
     <Stack gap="md" h="100%">
+      <YtDlpBinaryStatus />
       <Box>
         <Text fw={600} mb="xs">
           Rechercher une vidéo sur YouTube
@@ -77,9 +82,19 @@ export default function TelechargementPage({ playlists }) {
           <Text fw={600} mb="sm">
             Options de téléchargement
           </Text>
-          <DownloadConfigForm playlists={playlists} selectedVideo={selectedVideo} />
+          <DownloadConfigForm
+            playlists={playlists}
+            selectedVideo={selectedVideo}
+            onStartDownload={startDownload}
+          />
         </Card>
       </SimpleGrid>
+
+      <DownloadQueuePanel
+        downloads={downloads}
+        onCancel={cancelDownload}
+        onRemove={removeDownload}
+      />
 
       <VideoPreviewModal result={preview} onClose={() => setPreview(null)} />
     </Stack>

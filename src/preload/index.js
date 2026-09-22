@@ -19,11 +19,32 @@ const YOUTUBE_CHANNEL = {
   search: 'youtube:search'
 }
 
+const YT_DLP_CHANNELS = {
+  event: 'lads:ytdlp-event',
+  binaryStatus: 'lads:ytdlp-binary-status',
+  binaryDownload: 'lads:ytdlp-binary-download',
+  downloadStart: 'lads:ytdlp-download-start',
+  downloadCancel: 'lads:ytdlp-download-cancel'
+}
+
 const nonceArg = process.argv.find((arg) => arg.startsWith('--csp-nonce='))
 const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
 
 const youtube = {
   search: (texte) => ipcRenderer.invoke(YOUTUBE_CHANNEL.search, texte)
+}
+
+// yt-dlp APIs for renderer
+const ytdlp = {
+  getBinaryStatus: () => ipcRenderer.invoke(YT_DLP_CHANNELS.binaryStatus),
+  downloadBinary: () => ipcRenderer.invoke(YT_DLP_CHANNELS.binaryDownload),
+  startDownload: (config) => ipcRenderer.invoke(YT_DLP_CHANNELS.downloadStart, config),
+  cancelDownload: (id) => ipcRenderer.invoke(YT_DLP_CHANNELS.downloadCancel, id),
+  onEvent: (callback) => {
+    const listener = (_event, payload) => callback(payload)
+    ipcRenderer.on(YT_DLP_CHANNELS.event, listener)
+    return () => ipcRenderer.removeListener(YT_DLP_CHANNELS.event, listener)
+  }
 }
 
 // Playlists APIs for renderer
@@ -72,12 +93,14 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('updater', updater)
     contextBridge.exposeInMainWorld('playlists', playlists)
     contextBridge.exposeInMainWorld('youtube', youtube)
+    contextBridge.exposeInMainWorld('ytdlp', ytdlp)
   } catch (error) {
     console.error(error)
   }
 } else {
   window.electron = electronAPI
   window.api = api
+  window.ytdlp = ytdlp
   window.base = base
   window.updater = updater
 }
