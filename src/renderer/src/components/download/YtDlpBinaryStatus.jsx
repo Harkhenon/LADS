@@ -1,9 +1,10 @@
-import { Badge, Button, Group, Text, Alert } from '@mantine/core'
+import { Alert, Badge, Button, Group, Text } from '@mantine/core'
 import { IconDownload, IconLoader2 } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 
 export default function YtDlpBinaryStatus() {
   const [status, setStatus] = useState(null)
+  const [runtimeBusy, setRuntimeBusy] = useState(false)
 
   useEffect(() => {
     window.ytdlp.getBinaryStatus().then(setStatus)
@@ -17,9 +18,23 @@ export default function YtDlpBinaryStatus() {
       if (payload.event === 'binary-error') {
         setStatus((s) => ({ ...s, state: 'missing' }))
       }
+      if (payload.event === 'runtime-downloading') {
+        setRuntimeBusy(true)
+      }
+      if (payload.event === 'runtime-ready' || payload.event === 'runtime-error') {
+        setRuntimeBusy(false)
+      }
     })
     return unsubscribe
   }, [])
+
+  if (runtimeBusy) {
+    return (
+      <Alert icon={<IconLoader2 size={18} spin />} color="pastelBlue" variant="light">
+        Préparation du moteur JavaScript (Deno/Node) — première fois uniquement…
+      </Alert>
+    )
+  }
 
   if (!status || status.state === 'ready') {
     return null

@@ -4,6 +4,7 @@ import { mkdirSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join, extname } from 'node:path'
 import crypto from 'node:crypto'
 import YTDlpWrapModule from 'yt-dlp-wrap'
+import { ensureJsRuntime } from './jsruntime'
 
 const YTDlpWrap = YTDlpWrapModule.default ?? YTDlpWrapModule
 
@@ -27,6 +28,7 @@ const RESOLUTION_HEIGHTS = {
 const DOWNLOAD_LOCATIONS = ['documents', 'desktop', 'music', 'custom']
 
 let ytDlpWrap = null
+let jsRuntimeSpec = null
 const downloads = new Map()
 
 function binaryPath() {
@@ -63,6 +65,9 @@ function resolveOutputDir(config) {
 
 function buildArgs(config) {
   const args = [`https://www.youtube.com/watch?v=${config.videoId}`]
+  if (jsRuntimeSpec) {
+    args.push('--js-runtimes', jsRuntimeSpec)
+  }
   if (config.format === 'audio') {
     args.push('-x', '--audio-format', 'mp3')
   } else {
@@ -126,13 +131,30 @@ async function downloadBinary() {
   }
 }
 
-async function startDownload(config) {
+async function ensureReadyForDownload() {
   const status = getBinaryStatus()
   if (status.state !== 'ready') {
     throw new Error(
       "Le binaire yt-dlp est introuvable. Installez-le depuis l'onglet Téléchargement."
     )
   }
+  if (!jsRuntimeSpec) {
+    broadcastEvent('runtime-downloading')
+    try {
+      jsRuntimeSpec = (
+        await ensureJsRuntime({
+          onReady: () => broadcastEvent('runtime-ready')
+        })
+      ).spec
+    } catch (error) {
+      broadcastEvent('runtime-error', { message: String(error?.message ?? error) })
+      throw error
+    }
+  }
+}
+
+async function startDownload(config) {
+  await ensureReadyForDownload()
   if (!config.videoId) {
     throw new Error('Aucune vidéo sélectionnée.')
   }
