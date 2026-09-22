@@ -69,11 +69,10 @@ function buildArgs(config) {
     args.push('--js-runtimes', jsRuntimeSpec)
   }
   if (config.format === 'audio') {
-    args.push('-x', '--audio-format', 'mp3')
+    args.push('-f', 'ba[ext=m4a]/ba[ext=webm]/ba')
   } else {
     const height = RESOLUTION_HEIGHTS[config.resolution] ?? 1080
-    args.push('-f', `bv*[height<=${height}]+ba/b[height<=${height}]`)
-    args.push('--merge-output-format', 'mp4')
+    args.push('-f', `b[ext=mp4][height<=${height}]/b[height<=${height}]/b`)
   }
   args.push('--newline')
   args.push('-o', join(resolveOutputDir(config), '%(title)s.%(ext)s'))
@@ -81,7 +80,8 @@ function buildArgs(config) {
 }
 
 function findOutputFile(outputDir, startedAt, format) {
-  const extensions = format === 'audio' ? ['.mp3'] : ['.mp4', '.mkv', '.webm']
+  const extensions =
+    format === 'audio' ? ['.mp3', '.m4a', '.webm', '.opus'] : ['.mp4', '.mkv', '.webm']
   let best = null
   let bestMtime = 0
   for (const name of readdirSync(outputDir)) {

@@ -20,13 +20,16 @@ TelechargementPage.propTypes = {
   setPlaylists: PropTypes.func.isRequired
 }
 
+const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'webm', 'opus', 'wav', 'flac']
+
 function buildKaraokeFromDownload(config, filePath) {
   const ext = (filePath.split('.').pop() ?? '').toLowerCase()
+  const isAudio = AUDIO_EXTENSIONS.includes(ext)
   return {
     id: `k-${crypto.randomUUID()}`,
     title: config.title,
-    format: ext === 'mp3' ? 'mp3' : 'mp4',
-    resolution: config.format === 'audio' ? 'audio' : config.resolution,
+    format: isAudio ? ext : 'mp4',
+    resolution: isAudio ? 'audio' : config.resolution,
     duration: '',
     addedAt: new Date().toISOString().slice(0, 10),
     filePath
