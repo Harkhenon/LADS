@@ -5,6 +5,7 @@ import { join, extname } from 'node:path'
 import crypto from 'node:crypto'
 import YTDlpWrapModule from 'yt-dlp-wrap'
 import { ensureJsRuntime } from './jsruntime'
+import { ensureFfmpeg, isFfmpegReady, ffmpegPath } from './ffmpeg'
 
 const YTDlpWrap = YTDlpWrapModule.default ?? YTDlpWrapModule
 
@@ -29,6 +30,7 @@ const DOWNLOAD_LOCATIONS = ['documents', 'desktop', 'music', 'custom']
 
 let ytDlpWrap = null
 let jsRuntimeSpec = null
+let ffmpegLocation = null
 const downloads = new Map()
 
 function binaryPath() {
@@ -68,11 +70,23 @@ function buildArgs(config) {
   if (jsRuntimeSpec) {
     args.push('--js-runtimes', jsRuntimeSpec)
   }
+  if (ffmpegLocation) {
+    args.push('--ffmpeg-location', ffmpegLocation)
+  }
   if (config.format === 'audio') {
-    args.push('-f', 'ba[ext=m4a]/ba[ext=webm]/ba')
+    if (ffmpegLocation) {
+      args.push('-f', 'ba/b', '-x', '--audio-format', 'mp3')
+    } else {
+      args.push('-f', 'ba[ext=m4a]/ba[ext=webm]/ba')
+    }
   } else {
     const height = RESOLUTION_HEIGHTS[config.resolution] ?? 1080
-    args.push('-f', `b[ext=mp4][height<=${height}]/b[height<=${height}]/b`)
+    if (ffmpegLocation) {
+      args.push('-f', `bv*[height<=${height}]+ba/b[height<=${height}]/b`)
+      args.push('--merge-output-format', 'mp4')
+    } else {
+      args.push('-f', `b[ext=mp4][height<=${height}]/b[height<=${height}]/b`)
+    }
   }
   args.push('--newline')
   args.push('-o', join(resolveOutputDir(config), '%(title)s.%(ext)s'))
@@ -150,6 +164,17 @@ async function ensureReadyForDownload() {
       broadcastEvent('runtime-error', { message: String(error?.message ?? error) })
       throw error
     }
+  }
+  if (!ffmpegLocation && !isFfmpegReady()) {
+    broadcastEvent('ffmpeg-downloading')
+    try {
+      ffmpegLocation = await ensureFfmpeg()
+      broadcastEvent('ffmpeg-ready')
+    } catch (error) {
+      broadcastEvent('ffmpeg-error', { message: String(error?.message ?? error) })
+    }
+  } else if (!ffmpegLocation) {
+    ffmpegLocation = ffmpegPath()
   }
 }
 

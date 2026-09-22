@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 export default function YtDlpBinaryStatus() {
   const [status, setStatus] = useState(null)
   const [runtimeBusy, setRuntimeBusy] = useState(false)
+  const [ffmpegBusy, setFfmpegBusy] = useState(false)
 
   useEffect(() => {
     window.ytdlp.getBinaryStatus().then(setStatus)
@@ -24,6 +25,12 @@ export default function YtDlpBinaryStatus() {
       if (payload.event === 'runtime-ready' || payload.event === 'runtime-error') {
         setRuntimeBusy(false)
       }
+      if (payload.event === 'ffmpeg-downloading') {
+        setFfmpegBusy(true)
+      }
+      if (payload.event === 'ffmpeg-ready' || payload.event === 'ffmpeg-error') {
+        setFfmpegBusy(false)
+      }
     })
     return unsubscribe
   }, [])
@@ -32,6 +39,14 @@ export default function YtDlpBinaryStatus() {
     return (
       <Alert icon={<IconLoader2 size={18} spin />} color="pastelBlue" variant="light">
         Préparation du moteur JavaScript (Deno/Node) — première fois uniquement…
+      </Alert>
+    )
+  }
+
+  if (ffmpegBusy) {
+    return (
+      <Alert icon={<IconLoader2 size={18} spin />} color="pastelBlue" variant="light">
+        Téléchargement de ffmpeg (permet les vidéos haute définition)…
       </Alert>
     )
   }
