@@ -1,7 +1,7 @@
 {
   "name": "lads",
   "desktopName": "LADS",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "An Electron App for loved mothers singers",
   "main": "./out/main/index.js",
   "author": "Harkhenon <isoka33@gmail.com>",
