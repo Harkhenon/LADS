@@ -11,6 +11,33 @@ import media from './media'
 
 const nonce = crypto.randomBytes(16).toString('base64')
 
+let splashWindow = null
+
+function createSplashWindow() {
+  const splash = new BrowserWindow({
+    width: 340,
+    height: 260,
+    frame: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    center: true,
+    show: true,
+    alwaysOnTop: true,
+    backgroundColor: '#0e1a30',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  })
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    splash.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/splash.html`)
+  } else {
+    splash.loadFile(join(__dirname, '../renderer/splash.html'))
+  }
+  return splash
+}
+
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -28,7 +55,9 @@ function createWindow() {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.once('ready-to-show', () => {
+    splashWindow?.close()
+    splashWindow = null
     mainWindow.show()
   })
 
@@ -69,6 +98,7 @@ app.whenReady().then(() => {
   ytdlp()
   media()
 
+  splashWindow = createSplashWindow()
   createWindow()
 
   app.on('activate', function () {
