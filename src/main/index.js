@@ -8,6 +8,7 @@ import registerPlaylistsHandles from './playlists'
 import youtube from './youtube'
 import ytdlp from './ytdlp'
 import media from './media'
+import { registerMediaProtocol } from './protocol'
 
 const nonce = crypto.randomBytes(16).toString('base64')
 
@@ -91,6 +92,8 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  registerMediaProtocol()
 
   initUpdater()
   registerPlaylistsHandles()
