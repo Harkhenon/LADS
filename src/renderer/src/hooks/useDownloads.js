@@ -7,12 +7,26 @@ const initialItemState = {
   speed: null,
   eta: null,
   status: 'downloading',
-  error: null
+  error: null,
+  filePath: null,
+  config: null
 }
 
-export default function useDownloads() {
+const completedFields = (payload) => ({
+  percent: 100,
+  status: 'completed',
+  filePath: payload.filePath ?? null
+})
+
+export default function useDownloads({ onCompleted } = {}) {
   const [downloads, setDownloads] = useState({})
   const notifiedRef = useRef(new Set())
+  const configsRef = useRef({})
+  const onCompletedRef = useRef(onCompleted)
+
+  useEffect(() => {
+    onCompletedRef.current = onCompleted
+  }, [onCompleted])
 
   useEffect(() => {
     const unsubscribe = window.ytdlp.onEvent((payload) => {
@@ -34,7 +48,7 @@ export default function useDownloads() {
             }
             break
           case 'download-completed':
-            next[payload.id] = { ...item, percent: 100, status: 'completed' }
+            next[payload.id] = { ...item, ...completedFields(payload) }
             break
           case 'download-cancelled':
             next[payload.id] = { ...item, status: 'cancelled' }
@@ -52,7 +66,8 @@ export default function useDownloads() {
         const key = `${payload.event}:${payload.id}`
         if (!notifiedRef.current.has(key)) {
           notifiedRef.current.add(key)
-          const title = downloads[payload.id]?.title ?? 'Téléchargement'
+          const config = configsRef.current[payload.id]
+          const title = config?.title ?? 'Téléchargement'
           notifications.show({
             message:
               payload.event === 'download-completed'
@@ -63,24 +78,35 @@ export default function useDownloads() {
           })
         }
       }
+
+      if (payload.event === 'download-completed' && onCompletedRef.current) {
+        onCompletedRef.current({
+          id: payload.id,
+          filePath: payload.filePath ?? null,
+          config: configsRef.current[payload.id] ?? null
+        })
+      }
     })
     return unsubscribe
-  }, [downloads])
+  }, [])
 
   const startDownload = useCallback(async (config) => {
     const optimisticId = `${Date.now()}-${Math.random().toString(36).slice(2)}`
     setDownloads((current) => ({
       ...current,
-      [optimisticId]: { ...initialItemState, title: config.title }
+      [optimisticId]: { ...initialItemState, title: config.title, config }
     }))
+    configsRef.current[optimisticId] = config
     try {
       const { id } = await window.ytdlp.startDownload(config)
+      configsRef.current[id] = config
       setDownloads((current) => {
         const next = { ...current }
         delete next[optimisticId]
-        next[id] = { ...initialItemState, title: config.title }
+        next[id] = { ...initialItemState, title: config.title, config }
         return next
       })
+      delete configsRef.current[optimisticId]
       return id
     } catch (error) {
       setDownloads((current) => {
@@ -88,6 +114,7 @@ export default function useDownloads() {
         delete next[optimisticId]
         return next
       })
+      delete configsRef.current[optimisticId]
       throw error
     }
   }, [])
@@ -99,6 +126,7 @@ export default function useDownloads() {
   const removeDownload = useCallback((id) => {
     notifiedRef.current.delete(`download-completed:${id}`)
     notifiedRef.current.delete(`download-error:${id}`)
+    delete configsRef.current[id]
     setDownloads((current) => {
       const next = { ...current }
       delete next[id]

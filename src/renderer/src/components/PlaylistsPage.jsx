@@ -11,12 +11,13 @@ import {
   Text,
   Title
 } from '@mantine/core'
-import { IconDots, IconEdit, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconDots, IconEdit, IconMusicPlus, IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import { testDeleteKaraoke, testUpdateKaraoke } from '../data/testFunctions'
 import PlaylistFormModal from './PlaylistFormModal'
 import PlaylistKaraokeList from './PlaylistKaraokeList'
+import AddKaraokeModal from './AddKaraokeModal'
 
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -35,6 +36,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
 
   const [formOpened, setFormOpened] = useState(false)
   const [editingPlaylist, setEditingPlaylist] = useState(null)
+  const [addKaraokeOpened, setAddKaraokeOpened] = useState(false)
 
   const selected = playlists.find((p) => p.id === selectedId) ?? null
 
@@ -66,6 +68,14 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     }
     setFormOpened(false)
     setEditingPlaylist(null)
+  }
+
+  const handleAddKaraokes = async (karaokes) => {
+    const updated = playlists.map((p) =>
+      p.id === selectedId ? { ...p, karaoke: [...p.karaoke, ...karaokes] } : p
+    )
+    setPlaylists(updated)
+    await window.playlists.update(updated)
   }
 
   const handleDeletePlaylist = (id) => {
@@ -144,13 +154,22 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
                       </Text>
                     )}
                   </Stack>
-                  <Button
-                    variant="light"
-                    leftSection={<IconEdit size={16} />}
-                    onClick={() => openEdit(selected)}
-                  >
-                    Modifier
-                  </Button>
+                  <Group gap="xs">
+                    <Button
+                      variant="light"
+                      leftSection={<IconMusicPlus size={16} />}
+                      onClick={() => setAddKaraokeOpened(true)}
+                    >
+                      Ajouter des fichiers
+                    </Button>
+                    <Button
+                      variant="light"
+                      leftSection={<IconEdit size={16} />}
+                      onClick={() => openEdit(selected)}
+                    >
+                      Modifier
+                    </Button>
+                  </Group>
                 </Group>
                 <Text size="sm" fw={500} mt="md">
                   Karaokés ({selected.karaoke.length})
@@ -169,6 +188,12 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
           </Card>
         </Grid.Col>
       </Grid>
+
+      <AddKaraokeModal
+        opened={addKaraokeOpened}
+        onClose={() => setAddKaraokeOpened(false)}
+        onAdd={handleAddKaraokes}
+      />
 
       <PlaylistFormModal
         opened={formOpened}

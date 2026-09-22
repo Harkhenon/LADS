@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { is } from '@electron-toolkit/utils'
-import { mkdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync, existsSync, readdirSync, statSync } from 'node:fs'
+import { join, extname } from 'node:path'
 import crypto from 'node:crypto'
 import YTDlpWrapModule from 'yt-dlp-wrap'
 
@@ -75,6 +75,28 @@ function buildArgs(config) {
   return args
 }
 
+function findOutputFile(outputDir, startedAt, format) {
+  const extensions = format === 'audio' ? ['.mp3'] : ['.mp4', '.mkv', '.webm']
+  let best = null
+  let bestMtime = 0
+  for (const name of readdirSync(outputDir)) {
+    const filePath = join(outputDir, name)
+    try {
+      const stats = statSync(filePath)
+      const ext = extname(name).toLowerCase()
+      if (stats.isFile() && stats.mtimeMs >= startedAt && extensions.includes(ext)) {
+        if (stats.mtimeMs > bestMtime) {
+          best = filePath
+          bestMtime = stats.mtimeMs
+        }
+      }
+    } catch {
+      // fichier inaccessible, on l'ignore
+    }
+  }
+  return best
+}
+
 function sanitizeProgress(progress) {
   const percent = Number.isFinite(progress.percent) ? progress.percent : null
   return {
@@ -119,17 +141,32 @@ async function startDownload(config) {
   }
 
   const id = crypto.randomUUID()
-  mkdirSync(resolveOutputDir(config), { recursive: true })
+  const outputDir = resolveOutputDir(config)
+  mkdirSync(outputDir, { recursive: true })
+  const startedAt = Date.now()
 
   const emitter = ytDlpWrap.exec(buildArgs(config))
-  downloads.set(id, { process: emitter.ytDlpProcess, cancelled: false })
+  downloads.set(id, {
+    process: emitter.ytDlpProcess,
+    cancelled: false,
+    outputDir,
+    startedAt,
+    config
+  })
 
   emitter.on('progress', (progress) => {
     broadcastEvent('download-progress', { id, ...sanitizeProgress(progress) })
   })
   emitter.on('close', () => {
     const entry = downloads.get(id)
-    broadcastEvent(entry?.cancelled ? 'download-cancelled' : 'download-completed', { id })
+    if (entry?.cancelled) {
+      broadcastEvent('download-cancelled', { id })
+    } else {
+      broadcastEvent('download-completed', {
+        id,
+        filePath: findOutputFile(entry.outputDir, entry.startedAt, entry.config.format)
+      })
+    }
     downloads.delete(id)
   })
   emitter.on('error', (error) => {

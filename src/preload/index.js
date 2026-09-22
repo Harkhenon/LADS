@@ -19,6 +19,11 @@ const YOUTUBE_CHANNEL = {
   search: 'youtube:search'
 }
 
+const MEDIA_CHANNELS = {
+  pickFolder: 'lads:media-pick-folder',
+  listFiles: 'lads:media-list-files'
+}
+
 const YT_DLP_CHANNELS = {
   event: 'lads:ytdlp-event',
   binaryStatus: 'lads:ytdlp-binary-status',
@@ -32,6 +37,12 @@ const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
 
 const youtube = {
   search: (texte) => ipcRenderer.invoke(YOUTUBE_CHANNEL.search, texte)
+}
+
+// Media APIs for renderer
+const media = {
+  pickFolder: () => ipcRenderer.invoke(MEDIA_CHANNELS.pickFolder),
+  listFiles: (folder) => ipcRenderer.invoke(MEDIA_CHANNELS.listFiles, folder)
 }
 
 // yt-dlp APIs for renderer
@@ -94,6 +105,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('playlists', playlists)
     contextBridge.exposeInMainWorld('youtube', youtube)
     contextBridge.exposeInMainWorld('ytdlp', ytdlp)
+    contextBridge.exposeInMainWorld('media', media)
   } catch (error) {
     console.error(error)
   }
@@ -101,6 +113,7 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   window.api = api
   window.ytdlp = ytdlp
+  window.media = media
   window.base = base
   window.updater = updater
 }

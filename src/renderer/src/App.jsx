@@ -58,7 +58,7 @@ function App() {
             </Tabs.Panel>
 
             <Tabs.Panel value="telechargement" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
-              <TelechargementPage playlists={playlists} />
+              <TelechargementPage playlists={playlists} setPlaylists={setPlaylists} />
             </Tabs.Panel>
 
             <Tabs.Panel value="animation" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>

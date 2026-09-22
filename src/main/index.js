@@ -7,6 +7,7 @@ import { initUpdater } from './updater'
 import registerPlaylistsHandles from './playlists'
 import youtube from './youtube'
 import ytdlp from './ytdlp'
+import media from './media'
 
 const nonce = crypto.randomBytes(16).toString('base64')
 
@@ -66,6 +67,7 @@ app.whenReady().then(() => {
   registerPlaylistsHandles()
   youtube()
   ytdlp()
+  media()
 
   createWindow()
 

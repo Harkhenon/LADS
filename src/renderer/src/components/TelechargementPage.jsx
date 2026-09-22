@@ -2,7 +2,8 @@ import { Box, Group, Image, Stack, Text } from '@mantine/core'
 import { IconEye } from '@tabler/icons-react'
 import { testSearchYouTube } from '../data/testFunctions'
 import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { notifications } from '@mantine/notifications'
 import PropTypes from 'prop-types'
 import DownloadConfigForm from './DownloadConfigForm'
 import DownloadQueuePanel from './download/DownloadQueuePanel'
@@ -15,11 +16,50 @@ const playlistShape = PropTypes.shape({
 })
 
 TelechargementPage.propTypes = {
-  playlists: PropTypes.arrayOf(playlistShape).isRequired
+  playlists: PropTypes.arrayOf(playlistShape).isRequired,
+  setPlaylists: PropTypes.func.isRequired
 }
 
-export default function TelechargementPage({ playlists }) {
-  const { downloads, startDownload, cancelDownload, removeDownload } = useDownloads()
+function buildKaraokeFromDownload(config, filePath) {
+  const ext = (filePath.split('.').pop() ?? '').toLowerCase()
+  return {
+    id: `k-${crypto.randomUUID()}`,
+    title: config.title,
+    format: ext === 'mp3' ? 'mp3' : 'mp4',
+    resolution: config.format === 'audio' ? 'audio' : config.resolution,
+    duration: '',
+    addedAt: new Date().toISOString().slice(0, 10),
+    filePath
+  }
+}
+
+export default function TelechargementPage({ playlists, setPlaylists }) {
+  const handleDownloadCompleted = useCallback(
+    ({ config, filePath }) => {
+      if (!config?.playlist || !filePath) {
+        return
+      }
+      const karaoke = buildKaraokeFromDownload(config, filePath)
+      setPlaylists((prev) =>
+        prev.map((p) => (p.id === config.playlist ? { ...p, karaoke: [...p.karaoke, karaoke] } : p))
+      )
+      window.playlists.update(
+        playlists.map((p) =>
+          p.id === config.playlist ? { ...p, karaoke: [...p.karaoke, karaoke] } : p
+        )
+      )
+      notifications.show({
+        message: 'Ajouté à la playlist sélectionnée.',
+        color: 'pastelBlue',
+        autoClose: 2500
+      })
+    },
+    [playlists, setPlaylists]
+  )
+
+  const { downloads, startDownload, cancelDownload, removeDownload } = useDownloads({
+    onCompleted: handleDownloadCompleted
+  })
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
