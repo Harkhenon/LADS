@@ -53,6 +53,7 @@ export default function AnimationStage({
   const stageRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [dragValue, setDragValue] = useState(null)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
 
@@ -97,6 +98,10 @@ export default function AnimationStage({
     setProgress(video.duration ? Math.round((video.currentTime / video.duration) * 1000) / 10 : 0)
   }
 
+  const handleDrag = (value) => {
+    setDragValue(value)
+  }
+
   const handleSeek = (value) => {
     const video = videoRef.current
     if (!video || !video.duration) {
@@ -104,6 +109,7 @@ export default function AnimationStage({
     }
     video.currentTime = (value / 100) * video.duration
     setProgress(value)
+    setDragValue(null)
   }
 
   return (
@@ -187,8 +193,9 @@ export default function AnimationStage({
             </Text>
           </Group>
           <Slider
-            value={progress}
-            onChange={handleSeek}
+            value={dragValue ?? progress}
+            onChange={handleDrag}
+            onChangeEnd={handleSeek}
             color="pastelBlue"
             size="sm"
             label={(value) => formatTime((value / 100) * duration)}
