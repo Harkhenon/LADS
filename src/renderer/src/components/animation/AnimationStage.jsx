@@ -6,7 +6,8 @@ import {
   IconPlayerPlay,
   IconPlayerSkipBack,
   IconPlayerSkipForward,
-  IconPlayerStop
+  IconPlayerStop,
+  IconVolume
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
@@ -60,6 +61,7 @@ export default function AnimationStage({
   const [dragValue, setDragValue] = useState(null)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
+  const [volume, setVolume] = useState(0.8)
 
   const mediaUrl = track ? toMediaUrl(track.filePath) : null
 
@@ -80,6 +82,56 @@ export default function AnimationStage({
     document.addEventListener('fullscreenchange', handler)
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume
+    }
+  }, [volume, mediaUrl])
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      const target = event.target
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT' ||
+        target?.isContentEditable
+      ) {
+        return
+      }
+      switch (event.key) {
+        case ' ':
+          event.preventDefault()
+          if (isPlaying) {
+            onPause()
+          } else {
+            onPlay()
+          }
+          break
+        case 'ArrowLeft':
+          event.preventDefault()
+          onPrevious()
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          onNext()
+          break
+        case 'ArrowUp':
+          event.preventDefault()
+          setVolume((v) => Math.min(1, Math.round((v + 0.1) * 10) / 10))
+          break
+        case 'ArrowDown':
+          event.preventDefault()
+          setVolume((v) => Math.max(0, Math.round((v - 0.1) * 10) / 10))
+          break
+        default:
+          break
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isPlaying, onPlay, onPause, onNext, onPrevious])
 
   const handleFullscreen = () => {
     const el = stageRef.current
@@ -165,6 +217,7 @@ export default function AnimationStage({
               setProgress(0)
               setCurrentTime(0)
               setDuration(e.currentTarget.duration)
+              e.currentTarget.volume = volume
             }}
             onEnded={onEnded}
             onError={() => {}}
@@ -208,42 +261,85 @@ export default function AnimationStage({
         </Stack>
       )}
 
-      <Group justify="space-between" gap="xs" style={{ marginTop: 16, width: '100%' }}>
-        <Group gap="xs">
-          <ActionIcon variant="light" size="lg" onClick={onPrevious}>
+      <Box pos="relative" style={{ marginTop: 16, width: '100%' }}>
+        <Group justify="center" gap="xs" wrap="nowrap">
+          <ActionIcon
+            variant="light"
+            size="lg"
+            onClick={onPrevious}
+            title="Chanson précédente (flèche gauche)"
+          >
             <IconPlayerSkipBack size={20} />
           </ActionIcon>
           {isPlaying ? (
-            <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={onPause}>
+            <ActionIcon
+              variant="filled"
+              size="lg"
+              color="pastelBlue"
+              onClick={onPause}
+              title="Pause (Espace)"
+            >
               <IconPlayerPause size={20} />
             </ActionIcon>
           ) : (
-            <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={onPlay}>
+            <ActionIcon
+              variant="filled"
+              size="lg"
+              color="pastelBlue"
+              onClick={onPlay}
+              title="Lecture (Espace)"
+            >
               <IconPlayerPlay size={20} />
             </ActionIcon>
           )}
-          <ActionIcon variant="light" size="lg" color="red" onClick={onStop} disabled={!isPlaying}>
+          <ActionIcon
+            variant="light"
+            size="lg"
+            color="red"
+            onClick={onStop}
+            disabled={!isPlaying}
+            title="Stop"
+          >
             <IconPlayerStop size={20} />
           </ActionIcon>
-          <ActionIcon variant="light" size="lg" onClick={onNext}>
+          <ActionIcon
+            variant="light"
+            size="lg"
+            onClick={onNext}
+            title="Chanson suivante (flèche droite)"
+          >
             <IconPlayerSkipForward size={20} />
           </ActionIcon>
         </Group>
-        {onAutoAdvanceChange && (
-          <Tooltip
-            label="Passer automatiquement à la chanson suivante à la fin de chaque chanson"
-            position="top"
-            withArrow
-          >
-            <Checkbox
-              size="sm"
-              label="Lecture automatique"
-              checked={autoAdvance}
-              onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
-            />
+        <Group
+          gap="xs"
+          wrap="nowrap"
+          style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
+        >
+          <Tooltip label="Volume (flèches haut / bas)" position="top" withArrow>
+            <Group gap={4} wrap="nowrap">
+              <IconVolume size={16} color="var(--mantine-color-dimmed)" />
+              <Text size="xs" c="dimmed" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {Math.round(volume * 100)}%
+              </Text>
+            </Group>
           </Tooltip>
-        )}
-      </Group>
+          {onAutoAdvanceChange && (
+            <Tooltip
+              label="Passer automatiquement à la chanson suivante à la fin de chaque chanson"
+              position="top"
+              withArrow
+            >
+              <Checkbox
+                size="sm"
+                label="Lecture automatique"
+                checked={autoAdvance}
+                onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
+              />
+            </Tooltip>
+          )}
+        </Group>
+      </Box>
     </Box>
   )
 }
