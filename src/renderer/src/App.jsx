@@ -11,8 +11,15 @@ function App() {
   const [playlists, setPlaylists] = useState(null)
 
   useEffect(() => {
-    if (playlists === null) {
-      ;(async () => setPlaylists(await window.playlists.read()))()
+    let cancelled = false
+    ;(async () => {
+      const loaded = await window.playlists.read()
+      if (!cancelled) {
+        setPlaylists(loaded)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
   }, [])
 

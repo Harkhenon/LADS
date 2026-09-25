@@ -1,10 +1,8 @@
 import { ipcMain, dialog } from 'electron'
-import { readdirSync, statSync } from 'node:fs'
-import { join, basename, extname } from 'node:path'
+import { statSync } from 'node:fs'
+import { basename, extname } from 'node:path'
 
 const MEDIA_CHANNELS = {
-  pickFolder: 'lads:media-pick-folder',
-  listFiles: 'lads:media-list-files',
   pickFiles: 'lads:media-pick-files'
 }
 
@@ -25,40 +23,7 @@ function toMediaFile(filePath, folder) {
   }
 }
 
-function listMediaFiles(dirPath) {
-  const files = []
-  try {
-    for (const name of readdirSync(dirPath)) {
-      const filePath = join(dirPath, name)
-      try {
-        const stats = statSync(filePath)
-        if (stats.isFile() && MEDIA_EXTENSIONS.includes(extname(name).toLowerCase())) {
-          const media = toMediaFile(filePath, dirPath)
-          media.size = stats.size
-          files.push(media)
-        }
-      } catch {
-        // fichier inaccessible, on l'ignore
-      }
-    }
-  } catch {
-    return []
-  }
-  return files
-}
-
 function registerMediaIpc() {
-  ipcMain.handle(MEDIA_CHANNELS.pickFolder, async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory', 'createDirectory']
-    })
-    return result.canceled ? null : result.filePaths[0]
-  })
-
-  ipcMain.handle(MEDIA_CHANNELS.listFiles, (_event, dirPath) =>
-    typeof dirPath === 'string' && dirPath ? listMediaFiles(dirPath) : []
-  )
-
   ipcMain.handle(MEDIA_CHANNELS.pickFiles, async () => {
     const result = await dialog.showOpenDialog({
       title: 'Ajouter des fichiers à la playlist',
