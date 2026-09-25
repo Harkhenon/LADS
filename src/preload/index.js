@@ -28,6 +28,7 @@ const YT_DLP_CHANNELS = {
   event: 'lads:ytdlp-event',
   binaryStatus: 'lads:ytdlp-binary-status',
   binaryDownload: 'lads:ytdlp-binary-download',
+  ensureTools: 'lads:ytdlp-ensure-tools',
   downloadStart: 'lads:ytdlp-download-start',
   downloadCancel: 'lads:ytdlp-download-cancel'
 }
@@ -49,6 +50,7 @@ const media = {
 const ytdlp = {
   getBinaryStatus: () => ipcRenderer.invoke(YT_DLP_CHANNELS.binaryStatus),
   downloadBinary: () => ipcRenderer.invoke(YT_DLP_CHANNELS.binaryDownload),
+  ensureTools: () => ipcRenderer.invoke(YT_DLP_CHANNELS.ensureTools),
   startDownload: (config) => ipcRenderer.invoke(YT_DLP_CHANNELS.downloadStart, config),
   cancelDownload: (id) => ipcRenderer.invoke(YT_DLP_CHANNELS.downloadCancel, id),
   onEvent: (callback) => {

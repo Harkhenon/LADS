@@ -7,8 +7,9 @@ import { notifications } from '@mantine/notifications'
 import PropTypes from 'prop-types'
 import DownloadConfigForm from './DownloadConfigForm'
 import DownloadQueuePanel from './download/DownloadQueuePanel'
-import YtDlpBinaryStatus from './download/YtDlpBinaryStatus'
+import ToolsInstallOverlay from './download/ToolsInstallOverlay'
 import useDownloads from '../hooks/useDownloads'
+import useToolsInstall from '../hooks/useToolsInstall'
 
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -37,6 +38,8 @@ function buildKaraokeFromDownload(config, filePath) {
 }
 
 export default function TelechargementPage({ playlists, setPlaylists }) {
+  const { tools, error: installError, installed, retry } = useToolsInstall()
+
   const handleDownloadCompleted = useCallback(
     ({ config, filePath }) => {
       if (!config?.playlist || !filePath) {
@@ -77,70 +80,77 @@ export default function TelechargementPage({ playlists, setPlaylists }) {
   }
 
   return (
-    <Stack gap="md" h="100%">
-      <YtDlpBinaryStatus />
-      <Box>
-        <Text fw={600} mb="xs">
-          Rechercher une vidéo sur YouTube
-        </Text>
-        <Group>
-          <TextInput
-            placeholder="Titre de la chanson, artiste, URL…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            style={{ flex: 1 }}
-          />
-          <Button onClick={handleSearch}>Rechercher</Button>
-        </Group>
-      </Box>
-
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
-        <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
-          <Text fw={600} mb="sm">
-            {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
-          </Text>
-          {results.length === 0 ? (
-            <Text c="dimmed" size="sm" ta="center" mt="xl">
-              {searched
-                ? 'Aucun résultat trouvé.'
-                : 'Lancez une recherche pour afficher les vidéos.'}
-            </Text>
-          ) : (
-            <Stack gap="xs">
-              {results.map((r) => (
-                <SearchResultItem
-                  key={r.id}
-                  result={r}
-                  selected={selectedVideo?.id === r.id}
-                  onSelect={() => setSelectedVideo(r)}
-                  onPreview={() => setPreview(r)}
-                />
-              ))}
-            </Stack>
-          )}
-        </Card>
-
-        <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
-          <Text fw={600} mb="sm">
-            Options de téléchargement
-          </Text>
-          <DownloadConfigForm
-            playlists={playlists}
-            selectedVideo={selectedVideo}
-            onStartDownload={startDownload}
-          />
-        </Card>
-      </SimpleGrid>
-
-      <DownloadQueuePanel
-        downloads={downloads}
-        onCancel={cancelDownload}
-        onRemove={removeDownload}
+    <Box pos="relative" h="100%">
+      <ToolsInstallOverlay
+        visible={!installed}
+        tools={tools}
+        error={installError}
+        onRetry={retry}
       />
+      <Stack gap="md" h="100%" style={{ pointerEvents: installed ? undefined : 'none' }}>
+        <Box>
+          <Text fw={600} mb="xs">
+            Rechercher une vidéo sur YouTube
+          </Text>
+          <Group>
+            <TextInput
+              placeholder="Titre de la chanson, artiste, URL…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              style={{ flex: 1 }}
+            />
+            <Button onClick={handleSearch}>Rechercher</Button>
+          </Group>
+        </Box>
 
-      <VideoPreviewModal result={preview} onClose={() => setPreview(null)} />
-    </Stack>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
+          <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+            <Text fw={600} mb="sm">
+              {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
+            </Text>
+            {results.length === 0 ? (
+              <Text c="dimmed" size="sm" ta="center" mt="xl">
+                {searched
+                  ? 'Aucun résultat trouvé.'
+                  : 'Lancez une recherche pour afficher les vidéos.'}
+              </Text>
+            ) : (
+              <Stack gap="xs">
+                {results.map((r) => (
+                  <SearchResultItem
+                    key={r.id}
+                    result={r}
+                    selected={selectedVideo?.id === r.id}
+                    onSelect={() => setSelectedVideo(r)}
+                    onPreview={() => setPreview(r)}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Card>
+
+          <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+            <Text fw={600} mb="sm">
+              Options de téléchargement
+            </Text>
+            <DownloadConfigForm
+              playlists={playlists}
+              selectedVideo={selectedVideo}
+              onStartDownload={startDownload}
+            />
+          </Card>
+        </SimpleGrid>
+
+        <DownloadQueuePanel
+          downloads={downloads}
+          onCancel={cancelDownload}
+          onRemove={removeDownload}
+        />
+
+        <VideoPreviewModal result={preview} onClose={() => setPreview(null)} />
+      </Stack>
+    </Box>
   )
 }
 

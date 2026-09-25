@@ -13,6 +13,7 @@ const YT_DLP_CHANNELS = {
   event: 'lads:ytdlp-event',
   binaryStatus: 'lads:ytdlp-binary-status',
   binaryDownload: 'lads:ytdlp-binary-download',
+  ensureTools: 'lads:ytdlp-ensure-tools',
   downloadStart: 'lads:ytdlp-download-start',
   downloadCancel: 'lads:ytdlp-download-cancel'
 }
@@ -31,6 +32,8 @@ const DOWNLOAD_LOCATIONS = ['documents', 'desktop', 'music', 'custom']
 let ytDlpWrap = null
 let jsRuntimeSpec = null
 let ffmpegLocation = null
+let stateReady = false
+let ensureToolsPromise = null
 const downloads = new Map()
 
 function binaryPath() {
@@ -146,20 +149,36 @@ async function downloadBinary() {
 }
 
 async function ensureReadyForDownload() {
+  if (stateReady) {
+    return
+  }
+  if (!ensureToolsPromise) {
+    ensureToolsPromise = (async () => {
+      await ensureToolsSteps()
+      stateReady = true
+    })().finally(() => {
+      ensureToolsPromise = null
+    })
+  }
+  return ensureToolsPromise
+}
+
+async function ensureToolsSteps() {
   const status = getBinaryStatus()
   if (status.state !== 'ready') {
-    throw new Error(
-      "Le binaire yt-dlp est introuvable. Installez-le depuis l'onglet Téléchargement."
-    )
+    try {
+      await downloadBinary()
+    } catch (error) {
+      throw new Error(
+        `Installation automatique de yt-dlp échouée : ${String(error?.message ?? error)}`
+      )
+    }
   }
   if (!jsRuntimeSpec) {
     broadcastEvent('runtime-downloading')
     try {
-      jsRuntimeSpec = (
-        await ensureJsRuntime({
-          onReady: () => broadcastEvent('runtime-ready')
-        })
-      ).spec
+      jsRuntimeSpec = (await ensureJsRuntime()).spec
+      broadcastEvent('runtime-ready')
     } catch (error) {
       broadcastEvent('runtime-error', { message: String(error?.message ?? error) })
       throw error
@@ -176,6 +195,8 @@ async function ensureReadyForDownload() {
   } else if (!ffmpegLocation) {
     ffmpegLocation = ffmpegPath()
   }
+  stateReady = true
+  broadcastEvent('tools-ready')
 }
 
 async function startDownload(config) {
@@ -288,6 +309,23 @@ export default function ytdlp() {
   ipcMain.handle(YT_DLP_CHANNELS.binaryDownload, () =>
     is.dev ? downloadBinaryInDev() : downloadBinary()
   )
+  ipcMain.handle(YT_DLP_CHANNELS.ensureTools, () =>
+    is.dev ? ensureToolsInDev() : ensureReadyForDownload()
+  )
+}
+
+async function ensureToolsInDev() {
+  console.log('[LADS test] Installation automatique des outils (dev)')
+  broadcastEvent('binary-downloading')
+  await new Promise((r) => setTimeout(r, 800))
+  broadcastEvent('binary-ready', { state: 'ready', version: '2025.01.01-mock' })
+  broadcastEvent('runtime-downloading')
+  await new Promise((r) => setTimeout(r, 800))
+  broadcastEvent('runtime-ready')
+  broadcastEvent('ffmpeg-downloading')
+  await new Promise((r) => setTimeout(r, 800))
+  broadcastEvent('ffmpeg-ready')
+  broadcastEvent('tools-ready')
 }
 
 export { YT_DLP_CHANNELS }
