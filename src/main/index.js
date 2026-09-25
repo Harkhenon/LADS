@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -40,10 +40,13 @@ function createSplashWindow() {
 }
 
 function createWindow() {
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workArea
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: Math.round(screenWidth / 2),
+    height: Math.round((screenHeight * 3) / 4),
+    center: true,
     show: false,
     icon: join(__dirname, 'build/icon.svg'),
     autoHideMenuBar: true,
