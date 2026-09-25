@@ -1,8 +1,8 @@
 import { AppShell, Container, Tabs } from '@mantine/core'
-import { IconHome, IconPlaylist, IconDownload, IconDeviceSpeaker } from '@tabler/icons-react'
 import { useState, useEffect } from 'react'
 import AccueilPage from './components/AccueilPage'
 import AnimationPage from './components/AnimationPage'
+import AppNav from './components/AppNav'
 import PlaylistsPage from './components/PlaylistsPage'
 import TelechargementPage from './components/TelechargementPage'
 
@@ -20,20 +20,7 @@ function App() {
     <Tabs value={activeTab} onChange={setActiveTab}>
       <AppShell w="100vw" h="100vh" header={{ height: 56 }} padding="md">
         <AppShell.Header withBorder>
-          <Tabs.List grow h="100%" style={{ flex: 1 }}>
-            <Tabs.Tab value="accueil" leftSection={<IconHome size={18} />}>
-              Accueil
-            </Tabs.Tab>
-            <Tabs.Tab value="playlists" leftSection={<IconPlaylist size={18} />}>
-              Playlists
-            </Tabs.Tab>
-            <Tabs.Tab value="telechargement" leftSection={<IconDownload size={18} />}>
-              Téléchargement
-            </Tabs.Tab>
-            <Tabs.Tab value="animation" leftSection={<IconDeviceSpeaker size={18} />}>
-              Animation
-            </Tabs.Tab>
-          </Tabs.List>
+          <AppNav />
         </AppShell.Header>
 
         <AppShell.Main>
