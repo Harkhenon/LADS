@@ -2,13 +2,25 @@ import { app, ipcMain } from 'electron'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-const playlistJsonPath = `${path.join(app.getPath('appData'), 'lads/playlists.json')}`
+const playlistsDir = path.join(app.getPath('userData'))
+const playlistJsonPath = path.join(playlistsDir, 'playlists.json')
+
+async function ensurePlaylistsFile() {
+  await fs.mkdir(playlistsDir, { recursive: true })
+  try {
+    await fs.access(playlistJsonPath)
+  } catch {
+    await fs.writeFile(playlistJsonPath, '[]', 'utf-8')
+  }
+}
 
 export default function registerPlaylistsHandles() {
   ipcMain.handle('playlists:update', async (event, playlists) => {
-    const stringifiedPlaylists = JSON.stringify(playlists, null, 2)
+    const safePlaylists = Array.isArray(playlists) ? playlists : []
+    const stringifiedPlaylists = JSON.stringify(safePlaylists, null, 2)
     try {
-      await fs.writeFile(playlistJsonPath, stringifiedPlaylists)
+      await ensurePlaylistsFile()
+      await fs.writeFile(playlistJsonPath, stringifiedPlaylists, 'utf-8')
       return {
         message: 'Playlist mise à jour',
         state: 1
@@ -23,12 +35,7 @@ export default function registerPlaylistsHandles() {
   })
 
   ipcMain.handle('playlists:read', async () => {
-    if (fs.access(playlistJsonPath)) {
-      return JSON.parse(await fs.readFile(playlistJsonPath))
-    }
-
-    console.info("[LADS] Aucun fichier de playlist existant, création d'un nouveau")
-    await fs.writeFile(playlistJsonPath, '[]')
-    return JSON.parse(await fs.readFile(playlistJsonPath))
+    await ensurePlaylistsFile()
+    return JSON.parse(await fs.readFile(playlistJsonPath, 'utf-8'))
   })
 }
