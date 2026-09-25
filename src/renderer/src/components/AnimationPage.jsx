@@ -23,13 +23,15 @@ AnimationPage.propTypes = {
 }
 
 export default function AnimationPage({ playlists }) {
-  const [playlistId, setPlaylistId] = useState(playlists[0]?.id ?? '')
+  const items = useMemo(() => playlists ?? [], [playlists])
+
+  const [playlistId, setPlaylistId] = useState(items[0]?.id ?? '')
   const [trackId, setTrackId] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
 
   const playlist = useMemo(
-    () => playlists.find((p) => p.id === playlistId) ?? null,
-    [playlists, playlistId]
+    () => items.find((p) => p.id === playlistId) ?? null,
+    [items, playlistId]
   )
   const tracks = playlist?.karaoke ?? []
   const currentIndex = tracks.findIndex((t) => t.id === trackId)
@@ -111,7 +113,7 @@ export default function AnimationPage({ playlists }) {
             leftSection={<IconPlaylist size={16} />}
             value={playlistId}
             onChange={handlePlaylistChange}
-            data={playlists.map((p) => ({ value: p.id, label: p.name }))}
+            data={items.map((p) => ({ value: p.id, label: p.name }))}
             searchable
           />
           <Select
