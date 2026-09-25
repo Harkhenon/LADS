@@ -17,57 +17,46 @@ function App() {
   }, [])
 
   return (
-    <AppShell w="100vw" h="100vh" padding="md" layout="alt">
-      <AppShell.Main>
-        <Container fluid h="100%" p={0}>
-          <Tabs
-            value={activeTab}
-            onChange={setActiveTab}
-            orientation="vertical"
-            h="100%"
-            styles={{
-              root: { height: '100%' },
-              list: {
-                width: 220,
-                height: '100%',
-                alignItems: 'stretch'
-              }
-            }}
-          >
-            <Tabs.List>
-              <Tabs.Tab value="accueil" leftSection={<IconHome size={18} />}>
-                Accueil
-              </Tabs.Tab>
-              <Tabs.Tab value="playlists" leftSection={<IconPlaylist size={18} />}>
-                Playlists
-              </Tabs.Tab>
-              <Tabs.Tab value="telechargement" leftSection={<IconDownload size={18} />}>
-                Téléchargement
-              </Tabs.Tab>
-              <Tabs.Tab value="animation" leftSection={<IconDeviceSpeaker size={18} />}>
-                Animation
-              </Tabs.Tab>
-            </Tabs.List>
+    <Tabs value={activeTab} onChange={setActiveTab}>
+      <AppShell w="100vw" h="100vh" header={{ height: 56 }} padding="md">
+        <AppShell.Header withBorder>
+          <Tabs.List grow h="100%" style={{ flex: 1 }}>
+            <Tabs.Tab value="accueil" leftSection={<IconHome size={18} />}>
+              Accueil
+            </Tabs.Tab>
+            <Tabs.Tab value="playlists" leftSection={<IconPlaylist size={18} />}>
+              Playlists
+            </Tabs.Tab>
+            <Tabs.Tab value="telechargement" leftSection={<IconDownload size={18} />}>
+              Téléchargement
+            </Tabs.Tab>
+            <Tabs.Tab value="animation" leftSection={<IconDeviceSpeaker size={18} />}>
+              Animation
+            </Tabs.Tab>
+          </Tabs.List>
+        </AppShell.Header>
 
-            <Tabs.Panel value="accueil" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+        <AppShell.Main>
+          <Container fluid p={0} h="100%">
+            <Tabs.Panel value="accueil" h="100%">
               <AccueilPage onNavigate={setActiveTab} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="playlists" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+            <Tabs.Panel value="playlists" h="100%">
               <PlaylistsPage playlists={playlists} setPlaylists={setPlaylists} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="telechargement" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+            <Tabs.Panel value="telechargement" h="100%">
               <TelechargementPage playlists={playlists} setPlaylists={setPlaylists} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="animation" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+            <Tabs.Panel value="animation" h="100%">
               <AnimationPage playlists={playlists} />
             </Tabs.Panel>
-          </Tabs>
-        </Container>
-      </AppShell.Main>
-    </AppShell>
+          </Container>
+        </AppShell.Main>
+      </AppShell>
+    </Tabs>
   )
 }
 
