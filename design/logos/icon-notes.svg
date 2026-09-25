@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <linearGradient id="indigoN" x1="30" y1="30" x2="150" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C80D6"/>
+      <stop offset="1" stop-color="#4C4FA0"/>
+    </linearGradient>
+    <linearGradient id="corailN" x1="130" y1="130" x2="210" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8A7A"/>
+      <stop offset="1" stop-color="#E5564E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Double croche (♪♪) : la musique, avec la seconde note en corail -->
+  <g stroke-linecap="round" fill="none">
+    <path d="M78 60 L78 158" stroke="url(#indigoN)" stroke-width="16"/>
+    <path d="M150 76 L150 174" stroke="url(#corailN)" stroke-width="16"/>
+  </g>
+  <path d="M78 158 A30 30 0 1 0 78 158.01 Z" fill="url(#indigoN)" transform="translate(-12 -12)"/>
+  <ellipse cx="66" cy="164" rx="28" ry="22" fill="url(#indigoN)"/>
+  <path d="M94 60 Q110 54 122 66 Q132 76 150 76" stroke="url(#indigoN)" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <ellipse cx="138" cy="180" rx="28" ry="22" fill="url(#corailN)"/>
+  <path d="M166 76 Q182 70 194 82 Q204 92 222 92" stroke="url(#corailN)" stroke-width="12" fill="none" stroke-linecap="round" opacity="0"/>
+</svg>

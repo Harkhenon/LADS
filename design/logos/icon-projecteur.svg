@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <linearGradient id="indigoF" x1="30" y1="30" x2="210" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C80D6"/>
+      <stop offset="1" stop-color="#4C4FA0"/>
+    </linearGradient>
+    <linearGradient id="corailF" x1="60" y1="150" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8A7A"/>
+      <stop offset="1" stop-color="#E5564E"/>
+    </linearGradient>
+    <linearGradient id="fusionF" x1="30" y1="30" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C80D6"/>
+      <stop offset="1" stop-color="#E5564E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Projecteur de scène : cône de lumière indigo + note au bout du faisceau -->
+  <path d="M52 36 L108 36 L156 152 L4 152 Z" fill="url(#indigoF)" opacity="0.9"/>
+  <circle cx="80" cy="36" r="30" fill="url(#indigoF)"/>
+
+  <!-- Note de musique double croche, corail : le faisceau devient partition -->
+  <g stroke="url(#corailF)" stroke-width="12" stroke-linecap="round" fill="none">
+    <path d="M120 196 L120 128"/>
+    <path d="M180 210 L180 142"/>
+  </g>
+  <ellipse cx="106" cy="200" rx="20" ry="16" fill="url(#corailF)"/>
+  <ellipse cx="166" cy="214" rx="20" ry="16" fill="url(#corailF)"/>
+  <path d="M140 122 Q160 114 174 130 Q186 142 200 138" stroke="url(#corailF)" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+  <!-- Réceptacle de téléchargement en dégradé fusion -->
+  <path d="M40 232 L200 232" stroke="url(#fusionF)" stroke-width="14" stroke-linecap="round" fill="none"/>
+</svg>

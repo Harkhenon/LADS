@@ -1,19 +1,25 @@
-# Propositions de logos LADS — style icône sans fond
+# Propositions de logos LADS — univers spectacle / musique / téléchargement
 
-L'esprit du logo originel (Play indigo + téléchargement corail, les deux dégradés) transposé en **glyphe sans fond**, façon icône de bibliothèque.
-Chaque variante joue sur le même duo de formes mais avec un traitement différent :
+Toujours en style icône sans fond, avec les dégradés indigo/corail de l'originel, mais cette fois en intégrant l'univers de LADS : karaoké, musique, scène, vidéo, téléchargement.
 
-| # | Fichier | Traitement |
-|---|----------|------------|
-| 1 | [icon-1-heritage.svg](icon-1-heritage.svg) | **Héritage direct** — les formes pleines de l'ancien badge, simplement débarrassées du fond. |
-| 2 | [icon-2-contour.svg](icon-2-contour.svg) | **Contour épais** — le Play en trait épais arrondi, très lisible en très petit (16-24px). |
-| 3 | [icon-3-arrondi.svg](icon-3-arrondi.svg) | **Angles adoucis** — tout est arrondi pour un rendu plus doux, dans l'esprit pastel de l'app. |
-| 4 | [icon-4-fluide.svg](icon-4-fluide.svg) | **Flèche fluide** — la flèche devient un seul trait continu, le réceptacle fusionne indigo et corail. |
+| # | Fichier | Concept |
+|---|----------|---------|
+| 1 | [icon-micro.svg](icon-micro.svg) | **Micro + plateforme** — un micro à capsule karaoké qui "atterrit" sur un réceptacle de téléchargement corail. |
+| 2 | [icon-notes.svg](icon-notes.svg) | **Notes ♪♪** — deux notes de musique, une indigo (la source) et une corail (le résultat téléchargé). |
+| 3 | [icon-scene.svg](icon-scene.svg) | **Écran vidéo + play** — un écran façon YouTube avec triangle blanc, prolongé par une barre de progression corail et une note de musique en sortie. |
+| 4 | [icon-projecteur.svg](icon-projecteur.svg) | **Projecteur de scène** — un faisceau de lumière indigo éclaire deux notes de musique corail, sur un socle en dégradé fusion. |
 
 Aperçu rapide :
 
 | 1 | 2 | 3 | 4 |
 |---|---|---|---|
-| ![Icône 1](icon-1-heritage.svg) | ![Icône 2](icon-2-contour.svg) | ![Icône 3](icon-3-arrondi.svg) | ![Icône 4](icon-4-fluide.svg) |
+| ![Micro](icon-micro.svg) | ![Notes](icon-notes.svg) | ![Scène](icon-scene.svg) | ![Projecteur](icon-projecteur.svg) |
 
-Note : sans fond, ces glyphes s'affichent tels quels sur le bureau, dans la barre de titre ou le menu démarrer — mais pour un installeur Windows ou une AppImage, un fond (squircle, cercle ou carré arrondi) devra être remis au moment du packaging, ce que je peux générer automatiquement.
+Toutes les propositions restent en dégradé indigo → corail, sans fond, à l'esprit du style icône.
+
+## Concepts et intentions
+
+- **1 · Micro** : la capsule en gradient indigo, inclinée à 45° comme un micro sur pied, avec la plateforme corail en dessous — elle fait à la fois scène et réceptacle de téléchargement.
+- **2 · Notes** : la première note indigo (ce qu'on écoute), la seconde corail (ce qu'on télécharge), reliées par une liaison.
+- **3 · Écran** : le rectangle arrondi indigo + play blanc évoque instantanément la vidéo/YouTube ; les trois traits corail sous l'écran forment une barre de progression, et la note en bas à droite rappelle que tout ça finit en chanson.
+- **4 · Projecteur** : le projecteur indigo envoie son faisceau (la lumière du spectacle) sur deux notes corail (la musique) ; le socle fusionne les deux dégradés.
