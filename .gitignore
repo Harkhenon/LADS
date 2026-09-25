@@ -6,3 +6,4 @@ out
 *.log*
 *.code-workspace
 .editorconfig
+./reset-lads
