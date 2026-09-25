@@ -19,11 +19,13 @@ DownloadConfigForm.propTypes = {
 }
 
 export default function DownloadConfigForm({ playlists, selectedVideo }) {
+  const items = playlists ?? []
+
   const form = useForm({
     initialValues: {
       format: 'video',
       resolution: '1080p',
-      playlist: playlists[0]?.id ?? '',
+      playlist: items[0]?.id ?? '',
       location: 'documents',
       customLocation: ''
     },
@@ -73,7 +75,7 @@ export default function DownloadConfigForm({ playlists, selectedVideo }) {
 
         <Select
           label="Playlist associée"
-          data={playlists.map((p) => ({ value: p.id, label: p.name }))}
+          data={items.map((p) => ({ value: p.id, label: p.name }))}
           withAsterisk
           placeholder="Choisir une playlist"
           {...form.getInputProps('playlist')}
