@@ -1,19 +1,19 @@
-# Propositions de logos LADS — style icône
+# Propositions de logos LADS — style icône sans fond
 
-Quatre pistes en style icône moderne (squircle arrondi, formes simples, lisibles en 16px comme en 512px).
-La palette reprend le thème pastel bleu de l'app (`pastelBlue` / `lavenderMist` du `theme.js`), avec le corail de l'ancien logo pour les propositions qui gardent un accent chaud.
+L'esprit du logo originel (Play indigo + téléchargement corail, les deux dégradés) transposé en **glyphe sans fond**, façon icône de bibliothèque.
+Chaque variante joue sur le même duo de formes mais avec un traitement différent :
 
-| # | Fichier | Concept |
-|---|----------|---------|
-| 1 | [logo-1-play-download.svg](logo-1-play-download.svg) | **Play + téléchargement** — le triangle Play en haut, la flèche vers le bas en dessous. Résume les deux fonctions : lire et télécharger. |
-| 2 | [logo-2-barres-playlist.svg](logo-2-barres-playlist.svg) | **Playlist + téléchargement** — deux barres évoquant une liste de lecture, flèche de téléchargement en dessous. |
-| 3 | [logo-3-play-minimal.svg](logo-3-play-minimal.svg) | **Play minimaliste** — juste un triangle Play sur dégradé bleu → lavande. Le plus épuré, très lisible en tout petit. |
-| 4 | [logo-4-badge-play.svg](logo-4-badge-play.svg) | **Héritage de l'ancien logo** — garde la diagonale indigo/corail du logo actuel, avec un badge Play blanc en médaillon. |
+| # | Fichier | Traitement |
+|---|----------|------------|
+| 1 | [icon-1-heritage.svg](icon-1-heritage.svg) | **Héritage direct** — les formes pleines de l'ancien badge, simplement débarrassées du fond. |
+| 2 | [icon-2-contour.svg](icon-2-contour.svg) | **Contour épais** — le Play en trait épais arrondi, très lisible en très petit (16-24px). |
+| 3 | [icon-3-arrondi.svg](icon-3-arrondi.svg) | **Angles adoucis** — tout est arrondi pour un rendu plus doux, dans l'esprit pastel de l'app. |
+| 4 | [icon-4-fluide.svg](icon-4-fluide.svg) | **Flèche fluide** — la flèche devient un seul trait continu, le réceptacle fusionne indigo et corail. |
 
 Aperçu rapide :
 
 | 1 | 2 | 3 | 4 |
 |---|---|---|---|
-| ![Logo 1](logo-1-play-download.svg) | ![Logo 2](logo-2-barres-playlist.svg) | ![Logo 3](logo-3-play-minimal.svg) | ![Logo 4](logo-4-badge-play.svg) |
+| ![Icône 1](icon-1-heritage.svg) | ![Icône 2](icon-2-contour.svg) | ![Icône 3](icon-3-arrondi.svg) | ![Icône 4](icon-4-fluide.svg) |
 
-Ces fichiers sont des propositions ; le logo officiel reste `resources/icon.png` + `build/icon.svg` jusqu'à décision.
+Note : sans fond, ces glyphes s'affichent tels quels sur le bureau, dans la barre de titre ou le menu démarrer — mais pour un installeur Windows ou une AppImage, un fond (squircle, cercle ou carré arrondi) devra être remis au moment du packaging, ce que je peux générer automatiquement.
