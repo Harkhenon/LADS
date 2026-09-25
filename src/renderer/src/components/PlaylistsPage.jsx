@@ -14,10 +14,11 @@ import {
 import { IconDots, IconEdit, IconMusicPlus, IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
+import { notifications } from '@mantine/notifications'
 import { testDeleteKaraoke, testUpdateKaraoke } from '../data/testFunctions'
+import { mediaFileToKaraoke } from '../utils/karaoke'
 import PlaylistFormModal from './PlaylistFormModal'
 import PlaylistKaraokeList from './PlaylistKaraokeList'
-import AddKaraokeModal from './AddKaraokeModal'
 
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -38,9 +39,29 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
 
   const [formOpened, setFormOpened] = useState(false)
   const [editingPlaylist, setEditingPlaylist] = useState(null)
-  const [addKaraokeOpened, setAddKaraokeOpened] = useState(false)
 
   const selected = items.find((p) => p.id === selectedId) ?? null
+
+  const handleAddFiles = async () => {
+    const files = await window.media.pickFiles()
+    if (!files || files.length === 0) {
+      return
+    }
+    const karaokes = files.map(mediaFileToKaraoke)
+    const updated = items.map((p) =>
+      p.id === selectedId ? { ...p, karaoke: [...p.karaoke, ...karaokes] } : p
+    )
+    setPlaylists(updated)
+    await window.playlists.update(updated)
+    notifications.show({
+      message:
+        karaokes.length > 1
+          ? `${karaokes.length} fichiers ajoutés à « ${selected?.name} ».`
+          : `« ${karaokes[0].title} » ajouté à « ${selected?.name} ».`,
+      color: 'pastelBlue',
+      autoClose: 2500
+    })
+  }
 
   const openCreate = () => {
     setEditingPlaylist(null)
@@ -70,14 +91,6 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     }
     setFormOpened(false)
     setEditingPlaylist(null)
-  }
-
-  const handleAddKaraokes = async (karaokes) => {
-    const updated = items.map((p) =>
-      p.id === selectedId ? { ...p, karaoke: [...p.karaoke, ...karaokes] } : p
-    )
-    setPlaylists(updated)
-    await window.playlists.update(updated)
   }
 
   const handleDeletePlaylist = (id) => {
@@ -160,7 +173,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
                     <Button
                       variant="light"
                       leftSection={<IconMusicPlus size={16} />}
-                      onClick={() => setAddKaraokeOpened(true)}
+                      onClick={handleAddFiles}
                     >
                       Ajouter des fichiers
                     </Button>
@@ -190,12 +203,6 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
           </Card>
         </Grid.Col>
       </Grid>
-
-      <AddKaraokeModal
-        opened={addKaraokeOpened}
-        onClose={() => setAddKaraokeOpened(false)}
-        onAdd={handleAddKaraokes}
-      />
 
       <PlaylistFormModal
         opened={formOpened}

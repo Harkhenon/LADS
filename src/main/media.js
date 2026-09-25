@@ -4,7 +4,8 @@ import { join, basename, extname } from 'node:path'
 
 const MEDIA_CHANNELS = {
   pickFolder: 'lads:media-pick-folder',
-  listFiles: 'lads:media-list-files'
+  listFiles: 'lads:media-list-files',
+  pickFiles: 'lads:media-pick-files'
 }
 
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.ogg', '.m4a']
@@ -57,6 +58,31 @@ function registerMediaIpc() {
   ipcMain.handle(MEDIA_CHANNELS.listFiles, (_event, dirPath) =>
     typeof dirPath === 'string' && dirPath ? listMediaFiles(dirPath) : []
   )
+
+  ipcMain.handle(MEDIA_CHANNELS.pickFiles, async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Ajouter des fichiers à la playlist',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        {
+          name: 'Audio et vidéo',
+          extensions: MEDIA_EXTENSIONS.map((ext) => ext.slice(1))
+        }
+      ]
+    })
+    if (result.canceled) {
+      return null
+    }
+    return result.filePaths.map((filePath) => {
+      const media = toMediaFile(filePath)
+      try {
+        media.size = statSync(filePath).size
+      } catch {
+        media.size = null
+      }
+      return media
+    })
+  })
 }
 
 export default function media() {

@@ -21,7 +21,8 @@ const YOUTUBE_CHANNEL = {
 
 const MEDIA_CHANNELS = {
   pickFolder: 'lads:media-pick-folder',
-  listFiles: 'lads:media-list-files'
+  listFiles: 'lads:media-list-files',
+  pickFiles: 'lads:media-pick-files'
 }
 
 const YT_DLP_CHANNELS = {
@@ -43,7 +44,8 @@ const youtube = {
 // Media APIs for renderer
 const media = {
   pickFolder: () => ipcRenderer.invoke(MEDIA_CHANNELS.pickFolder),
-  listFiles: (folder) => ipcRenderer.invoke(MEDIA_CHANNELS.listFiles, folder)
+  listFiles: (folder) => ipcRenderer.invoke(MEDIA_CHANNELS.listFiles, folder),
+  pickFiles: () => ipcRenderer.invoke(MEDIA_CHANNELS.pickFiles)
 }
 
 // yt-dlp APIs for renderer
