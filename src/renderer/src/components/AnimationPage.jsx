@@ -1,4 +1,4 @@
-import { Card, Group, Select, Stack, Title } from '@mantine/core'
+import { Card, Checkbox, Group, Select, Stack, Title, Tooltip } from '@mantine/core'
 import { IconPlaylist } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
@@ -28,6 +28,7 @@ export default function AnimationPage({ playlists }) {
   const [playlistId, setPlaylistId] = useState(items[0]?.id ?? '')
   const [trackId, setTrackId] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
+  const [autoAdvance, setAutoAdvance] = useState(true)
 
   const playlist = useMemo(
     () => items.find((p) => p.id === playlistId) ?? null,
@@ -93,8 +94,12 @@ export default function AnimationPage({ playlists }) {
   }
 
   const handleEnded = () => {
-    if (currentIndex >= 0 && currentIndex < tracks.length - 1) {
-      goToTrack(tracks[currentIndex + 1].id, true)
+    if (!autoAdvance) {
+      setIsPlaying(false)
+      return
+    }
+    if (tracks.length > 0) {
+      goToTrack(tracks[(currentIndex + 1) % tracks.length].id, true)
     } else {
       setIsPlaying(false)
     }
@@ -130,6 +135,19 @@ export default function AnimationPage({ playlists }) {
             disabled={tracks.length === 0}
             searchable
           />
+          <Group justify="flex-end">
+            <Tooltip
+              label="Passer automatiquement à la chanson suivante à la fin de chaque chanson"
+              position="top"
+              withArrow
+            >
+              <Checkbox
+                label="Lecture automatique"
+                checked={autoAdvance}
+                onChange={(e) => setAutoAdvance(e.currentTarget.checked)}
+              />
+            </Tooltip>
+          </Group>
         </Stack>
       </Card>
       <Card className="glass-card" p="lg" radius="md" style={{ flex: 1, minHeight: 0 }}>
