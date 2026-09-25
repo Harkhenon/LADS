@@ -1,17 +1,26 @@
 import {
   ActionIcon,
+  Alert,
   Box,
   Button,
   Card,
   Grid,
   Group,
+  Kbd,
   Menu,
   ScrollArea,
   Stack,
   Text,
   Title
 } from '@mantine/core'
-import { IconDots, IconEdit, IconMusicPlus, IconPlus, IconTrash } from '@tabler/icons-react'
+import {
+  IconDots,
+  IconEdit,
+  IconMusicPlus,
+  IconPlus,
+  IconTrash,
+  IconInfoCircle
+} from '@tabler/icons-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import { notifications } from '@mantine/notifications'
@@ -129,7 +138,10 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
           Nouvelle playlist
         </Button>
       </Group>
-
+      <Alert variant="filled" color="blue" title="Ajout de fichiers" icon={<IconInfoCircle />}>
+        Pour ajouter plusieurs fichiers d&apos;un coup, maintiens la touche <Kbd>CTRL</Kbd> et
+        clique sur les fichiers qui t&apos;intéressent !
+      </Alert>
       <Grid grow gutter="md" style={{ flex: 1, minHeight: 0 }}>
         <Grid.Col span={{ base: 12, md: 4 }} style={{ minHeight: 0 }}>
           <Card className="glass-card" p="0" h="100%" style={{ overflow: 'hidden' }}>
