@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Slider, Stack, Text } from '@mantine/core'
+import { ActionIcon, Box, Checkbox, Group, Slider, Stack, Text, Tooltip } from '@mantine/core'
 import {
   IconMaximize,
   IconMusic,
@@ -31,6 +31,8 @@ function formatTime(seconds) {
 AnimationStage.propTypes = {
   track: karaokeShape,
   isPlaying: PropTypes.bool.isRequired,
+  autoAdvance: PropTypes.bool,
+  onAutoAdvanceChange: PropTypes.func,
   onPlay: PropTypes.func.isRequired,
   onPause: PropTypes.func.isRequired,
   onStop: PropTypes.func.isRequired,
@@ -42,6 +44,8 @@ AnimationStage.propTypes = {
 export default function AnimationStage({
   track,
   isPlaying,
+  autoAdvance = true,
+  onAutoAdvanceChange,
   onPlay,
   onPause,
   onStop,
@@ -204,25 +208,41 @@ export default function AnimationStage({
         </Stack>
       )}
 
-      <Group justify="center" gap="xs" style={{ marginTop: 16 }}>
-        <ActionIcon variant="light" size="lg" onClick={onPrevious}>
-          <IconPlayerSkipBack size={20} />
-        </ActionIcon>
-        {isPlaying ? (
-          <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={onPause}>
-            <IconPlayerPause size={20} />
+      <Group justify="space-between" gap="xs" style={{ marginTop: 16, width: '100%' }}>
+        <Group gap="xs">
+          <ActionIcon variant="light" size="lg" onClick={onPrevious}>
+            <IconPlayerSkipBack size={20} />
           </ActionIcon>
-        ) : (
-          <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={onPlay}>
-            <IconPlayerPlay size={20} />
+          {isPlaying ? (
+            <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={onPause}>
+              <IconPlayerPause size={20} />
+            </ActionIcon>
+          ) : (
+            <ActionIcon variant="filled" size="lg" color="pastelBlue" onClick={onPlay}>
+              <IconPlayerPlay size={20} />
+            </ActionIcon>
+          )}
+          <ActionIcon variant="light" size="lg" color="red" onClick={onStop} disabled={!isPlaying}>
+            <IconPlayerStop size={20} />
           </ActionIcon>
+          <ActionIcon variant="light" size="lg" onClick={onNext}>
+            <IconPlayerSkipForward size={20} />
+          </ActionIcon>
+        </Group>
+        {onAutoAdvanceChange && (
+          <Tooltip
+            label="Passer automatiquement à la chanson suivante à la fin de chaque chanson"
+            position="top"
+            withArrow
+          >
+            <Checkbox
+              size="sm"
+              label="Lecture automatique"
+              checked={autoAdvance}
+              onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
+            />
+          </Tooltip>
         )}
-        <ActionIcon variant="light" size="lg" color="red" onClick={onStop} disabled={!isPlaying}>
-          <IconPlayerStop size={20} />
-        </ActionIcon>
-        <ActionIcon variant="light" size="lg" onClick={onNext}>
-          <IconPlayerSkipForward size={20} />
-        </ActionIcon>
       </Group>
     </Box>
   )
