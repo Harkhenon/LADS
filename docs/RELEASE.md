@@ -33,35 +33,16 @@ Suivre le build :
 gh run list --workflow=release.yaml
 ```
 
-## Transition depuis le serveur api.harkhenon.dev (une seule fois)
+## Avant la première release (une seule fois)
 
-Les versions déjà installées (0.3.0) ne connaissent que l'ancien serveur : elles ne verront jamais les releases GitHub par elles-mêmes. Il faut donc une **version passerelle**, publiée aux deux endroits.
-
-1. **Testez la mise à jour depuis la 0.3.0** sur une machine ou une VM de test, et vérifiez que les playlists sont conservées. Ce passage (Electron 32 vers 45) n'a pas pu être testé sans modifier une installation réelle.
-2. Vérifiez une dernière fois ce qui deviendra public, puis rendez le dépôt public : à faire avant la première release, sinon l'application ne pourra pas la lire.
+1. Vérifiez une dernière fois ce qui deviendra public, puis rendez le dépôt public : sans cela, l'application ne pourra pas lire les releases.
 
    ```bash
    gh repo edit Harkhenon/LADS --visibility public --accept-visibility-change-consequences
    ```
 
-3. Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise.
-4. Publiez la version passerelle avec `npm run release -- minor`, puis récupérez ses fichiers :
-
-   ```bash
-   gh release download vX.Y.Z -R Harkhenon/LADS -p "lads-*-setup.exe*" -p latest.yml -D passerelle
-   ```
-
-5. Copiez-les sur l'ancien serveur, **l'installeur d'abord et `latest.yml` en dernier** (adaptez le compte et le dossier) :
-
-   ```bash
-   scp passerelle/lads-*-setup.exe* compte@harkhenon.dev:/var/www/api.harkhenon.dev/lads/
-   ```
-
-   ```bash
-   scp passerelle/latest.yml compte@harkhenon.dev:/var/www/api.harkhenon.dev/lads/
-   ```
-
-6. **Gardez le serveur en ligne** le temps que toutes les installations aient fait cette mise à jour : elles passent alors sur GitHub. Vous pourrez ensuite le fermer. Un poste resté en 0.3.0 ne recevra plus rien et devra réinstaller depuis les [releases](https://github.com/Harkhenon/LADS/releases).
+2. Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise.
+3. Publiez, installez cette version, puis publiez-en une deuxième : c'est le seul moyen de vérifier la mise à jour automatique de bout en bout. Vérifiez aussi que les playlists sont conservées.
 
 ## Signer le .exe
 
