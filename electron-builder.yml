@@ -1,6 +1,6 @@
-# Ne pas changer appId sans précaution : le GUID de désinstallation NSIS en dérive. Le modifier
-# installerait une seconde application au lieu de mettre à jour les versions déjà déployées.
-appId: com.electron.app
+# Ne plus changer appId après la première release : le GUID de désinstallation NSIS en dérive.
+# Le modifier installerait une seconde application au lieu de mettre à jour LADS.
+appId: dev.harkhenon.lads
 productName: lads
 directories:
   buildResources: build
