@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { Innertube } from 'youtubei.js'
 
 const MAX_QUERY_LENGTH = 300
 const MAX_RESULTS = 5
@@ -9,12 +9,10 @@ let sessionPromise = null
 // retrieve_player: false, car la recherche n'a pas besoin du lecteur JavaScript de YouTube.
 function getSession() {
   if (!sessionPromise) {
-    sessionPromise = import('youtubei.js')
-      .then(({ Innertube }) => Innertube.create({ retrieve_player: false }))
-      .catch((error) => {
-        sessionPromise = null
-        throw error
-      })
+    sessionPromise = Innertube.create({ retrieve_player: false }).catch((error) => {
+      sessionPromise = null
+      throw error
+    })
   }
   return sessionPromise
 }
@@ -35,24 +33,22 @@ function extractVideoData(video) {
   }
 }
 
-async function search(texte) {
+async function runSearch(query) {
   const session = await getSession()
   try {
-    return await session.search(texte)
+    return await session.search(query)
   } catch {
     // Session expirée : on en recrée une et on retente une seule fois.
     sessionPromise = null
-    return (await getSession()).search(texte)
+    return (await getSession()).search(query)
   }
 }
 
-export default function youtube() {
-  ipcMain.handle('youtube:search', async (_event, texte) => {
-    const query = typeof texte === 'string' ? texte.trim().slice(0, MAX_QUERY_LENGTH) : ''
-    if (!query) {
-      return []
-    }
-    const results = await search(query)
-    return results.videos.slice(0, MAX_RESULTS).map(extractVideoData)
-  })
+export async function searchYoutube(texte) {
+  const query = typeof texte === 'string' ? texte.trim().slice(0, MAX_QUERY_LENGTH) : ''
+  if (!query) {
+    return []
+  }
+  const results = await runSearch(query)
+  return results.videos.slice(0, MAX_RESULTS).map(extractVideoData)
 }

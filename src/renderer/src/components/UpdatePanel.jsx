@@ -1,113 +1,72 @@
-import { Badge, Box, Button, Group, Progress, Stack, Text } from '@mantine/core'
+import { Badge, Button, Group, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import {
-  IconCircleCheck,
-  IconDownload,
-  IconInfoCircle,
-  IconRefresh,
-  IconRocket
-} from '@tabler/icons-react'
+import { IconCircleCheck, IconInfoCircle, IconRefresh, IconRocket } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 
 const STATUS = {
   IDLE: 'idle',
   CHECKING: 'checking',
-  AVAILABLE: 'available',
-  NOT_AVAILABLE: 'not-available',
   DOWNLOADING: 'downloading',
-  DOWNLOADED: 'downloaded',
-  ERROR: 'error'
+  NOT_AVAILABLE: 'not-available',
+  READY: 'ready'
 }
 
 UpdatePanel.propTypes = {
   currentVersion: PropTypes.string.isRequired
 }
 
+// Les mises à jour se téléchargent seules et s'appliquent au prochain lancement.
+// Rien n'est demandé à l'utilisateur : ce panneau ne fait qu'informer.
 export default function UpdatePanel({ currentVersion }) {
   const [status, setStatus] = useState(STATUS.IDLE)
   const [availableVersion, setAvailableVersion] = useState(null)
-  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    if (!window.updater) return undefined
+    window.updater
+      .status()
+      .then(({ readyVersion }) => {
+        if (readyVersion) {
+          setAvailableVersion(readyVersion)
+          setStatus(STATUS.READY)
+        }
+      })
+      .catch(() => {})
+
     return window.updater.onUpdateEvent(({ event, args }) => {
       switch (event) {
         case 'checking-for-update':
-          setStatus(STATUS.CHECKING)
+          setStatus((current) => (current === STATUS.READY ? current : STATUS.CHECKING))
           break
         case 'update-available':
           setAvailableVersion(args[0]?.version ?? null)
-          setStatus(STATUS.AVAILABLE)
+          setStatus(STATUS.DOWNLOADING)
           break
         case 'update-not-available':
           setStatus(STATUS.NOT_AVAILABLE)
           break
-        case 'download-progress':
-          setProgress(Math.round(args[0]?.percent ?? 0))
-          setStatus(STATUS.DOWNLOADING)
-          break
         case 'update-downloaded':
-          setStatus(STATUS.DOWNLOADED)
+          setAvailableVersion(args[0]?.version ?? null)
+          setStatus(STATUS.READY)
           break
-        case 'error': {
-          setStatus(STATUS.ERROR)
-          const err = args.find((a) => a?.message)
+        case 'update-idle':
+          setStatus(STATUS.IDLE)
+          break
+        case 'error':
+          setStatus(STATUS.IDLE)
           notifications.show({
             title: 'Erreur de mise à jour',
-            message: err?.message ?? 'Erreur inconnue',
+            message: args[0]?.message ?? 'Erreur inconnue',
             color: 'rosePetal',
             icon: <IconInfoCircle />
           })
           break
-        }
       }
     })
   }, [])
 
-  const handleCheck = async () => {
-    if (!window.updater) {
-      console.log('[LADS test] Vérification des mises à jour')
-      return
-    }
-    try {
-      await window.updater.checkForUpdates()
-    } catch (error) {
-      setStatus(STATUS.ERROR)
-      notifications.show({
-        title: 'Erreur de mise à jour',
-        message: String(error),
-        color: 'rosePetal',
-        icon: <IconInfoCircle />
-      })
-    }
-  }
-
-  const handleDownload = async () => {
-    if (!window.updater) {
-      console.log('[LADS test] Téléchargement de la mise à jour')
-      return
-    }
-    setProgress(0)
-    try {
-      await window.updater.downloadUpdate()
-    } catch (error) {
-      setStatus(STATUS.ERROR)
-      notifications.show({
-        title: 'Erreur de téléchargement',
-        message: String(error),
-        color: 'rosePetal',
-        icon: <IconInfoCircle />
-      })
-    }
-  }
-
-  const handleInstall = () => {
-    if (!window.updater) {
-      console.log('[LADS test] Redémarrage et installation')
-      return
-    }
-    window.updater.quitAndInstall()
+  const handleCheck = () => {
+    window.updater.checkForUpdates().catch(() => setStatus(STATUS.IDLE))
   }
 
   return (
@@ -116,52 +75,29 @@ export default function UpdatePanel({ currentVersion }) {
         <Badge size="lg" color="pastelBlue" leftSection={<IconInfoCircle size={14} />}>
           Version {currentVersion}
         </Badge>
-        {availableVersion && status === STATUS.AVAILABLE && (
+        {status === STATUS.READY && (
           <Badge size="lg" color="softSky" leftSection={<IconCircleCheck size={14} />}>
-            {availableVersion} disponible
+            {availableVersion} prête
           </Badge>
         )}
       </Group>
 
-      {status === STATUS.DOWNLOADING && (
-        <Stack gap={4} w="100%" maw={360}>
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              Téléchargement en cours…
-            </Text>
-            <Text size="sm" c="pastelBlue">
-              {progress}%
-            </Text>
-          </Group>
-          <Progress value={progress} color="pastelBlue" radius="lg" size="sm" />
-        </Stack>
-      )}
-
       <Group justify="center">
-        {status === STATUS.DOWNLOADED ? (
+        {status === STATUS.READY ? (
           <Button
             variant="light"
             color="pastelBlue"
             leftSection={<IconRocket size={16} />}
-            onClick={handleInstall}
+            onClick={() => window.updater.restart()}
           >
-            Redémarrer et installer
-          </Button>
-        ) : status === STATUS.AVAILABLE ? (
-          <Button
-            variant="light"
-            color="pastelBlue"
-            leftSection={<IconDownload size={16} />}
-            onClick={handleDownload}
-          >
-            Télécharger la mise à jour
+            Redémarrer maintenant
           </Button>
         ) : (
           <Button
             variant="light"
             color="pastelBlue"
             leftSection={<IconRefresh size={16} />}
-            loading={status === STATUS.CHECKING}
+            loading={status === STATUS.CHECKING || status === STATUS.DOWNLOADING}
             onClick={handleCheck}
           >
             Vérifier les mises à jour
@@ -169,12 +105,20 @@ export default function UpdatePanel({ currentVersion }) {
         )}
       </Group>
 
+      {status === STATUS.READY && (
+        <Text size="sm" c="dimmed">
+          La nouvelle version s&apos;installera toute seule au prochain lancement de LADS.
+        </Text>
+      )}
+      {status === STATUS.DOWNLOADING && (
+        <Text size="sm" c="dimmed">
+          Préparation de la version {availableVersion}…
+        </Text>
+      )}
       {status === STATUS.NOT_AVAILABLE && (
-        <Box>
-          <Text size="sm" c="dimmed">
-            LADS est à jour.
-          </Text>
-        </Box>
+        <Text size="sm" c="dimmed">
+          LADS est à jour.
+        </Text>
       )}
     </Stack>
   )

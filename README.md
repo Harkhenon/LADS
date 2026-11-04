@@ -1,6 +1,6 @@
 # LADS
 
-**Application de gestion de playlists et téléchargement YouTube** – Une application desktop cross-platform construite avec **Electron**, **React** et **Mantine UI**.
+**Application de gestion de playlists et de téléchargement YouTube** pour les animations de l'association **"Regards étoilés"**. Elle tourne sur le PC de l'utilisateur, sans serveur distant, et se met à jour toute seule.
 
 > **Auteur** : [Harkhenon](https://harkhenon.dev) (isoka33@gmail.com)
 > **Licence** : MIT
@@ -9,29 +9,29 @@
 
 ## 📋 À propos du projet
 
-LADS est une application de **gestion de playlists et de téléchargement YouTube**, conçue spécifiquement pour les animations de l'association **"Regards étoilés"**. Elle permet de :
+LADS permet de :
 
 - Créer et organiser des playlists.
 - Télécharger des vidéos YouTube pour une utilisation hors ligne.
-- Gérer les médias de manière intuitive.
+- Animer une séance avec un lecteur en plein écran.
 
 ---
 
-## 🛠 Stack Technique
+## 🛠 Fonctionnement
 
-| Technologie       | Version | Description                                   |
-| ----------------- | ------- | --------------------------------------------- |
-| **Electron**      | 45      | Framework pour applications desktop.          |
-| **React**         | 19      | Bibliothèque pour les interfaces utilisateur. |
-| **Vite**          | 8       | Outil de build rapide pour le frontend.       |
-| **electron-vite** | 6       | Intégration de Vite avec Electron.            |
-| **Mantine UI**    | 9       | Composants UI modernes et accessibles.        |
+| Élément                | Rôle                                                        |
+| ---------------------- | ----------------------------------------------------------- |
+| **Node.js**            | Exécute un petit serveur accessible uniquement depuis le PC |
+| **React**, **Mantine** | Interface, ouverte dans Edge ou Chrome                      |
+| **yt-dlp**, **ffmpeg** | Téléchargement, installés au premier usage                  |
+
+Windows uniquement. Détails sur la sécurité et les mises à jour : **[docs/RELEASE.md](docs/RELEASE.md)**.
 
 ---
 
 ## 📥 Installation
 
-Téléchargez la dernière version de LADS depuis les **[releases GitHub](https://github.com/Harkhenon/LADS/releases)** et installez le fichier `.exe`.
+Voir [Installer LADS sur un PC](docs/RELEASE.md#installer-lads-sur-un-pc-une-seule-fois).
 
 ---
 
@@ -47,20 +47,14 @@ npm install
 npm run dev
 ```
 
-En mode développement, les téléchargements et les mises à jour sont simulés.
+Puis ouvrez `http://localhost:5173`. La recherche et les téléchargements sont réels, les mises à jour automatiques sont désactivées.
 
-| Commande                   | Rôle                           |
-| -------------------------- | ------------------------------ |
-| `npm run check`            | Lint et tests                  |
-| `npm run format`           | Mise en forme du code          |
-| `npm run build:win`        | Construit l'installeur Windows |
-| `npm run release -- patch` | Publie une nouvelle version    |
-
----
-
-## 🔄 Publication et mises à jour
-
-LADS vérifie les mises à jour sur les [releases GitHub](https://github.com/Harkhenon/LADS/releases). Pour publier une version ou signer l'exécutable, voir **[docs/RELEASE.md](docs/RELEASE.md)**.
+| Commande                   | Rôle                        |
+| -------------------------- | --------------------------- |
+| `npm run check`            | Lint et tests               |
+| `npm run format`           | Mise en forme du code       |
+| `npm run build`            | Compile l'application       |
+| `npm run release -- patch` | Publie une nouvelle version |
 
 ---
 

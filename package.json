@@ -1,9 +1,7 @@
 {
   "name": "lads",
-  "desktopName": "LADS",
   "version": "0.4.1",
-  "description": "An Electron App for loved mothers singers",
-  "main": "./out/main/index.js",
+  "description": "Application locale pour les animations de chant",
   "author": "Harkhenon <isoka33@gmail.com>",
   "license": "MIT",
   "homepage": "https://harkhenon.dev",
@@ -12,19 +10,15 @@
     "lint": "eslint --cache .",
     "test": "node --test \"test/**/*.test.mjs\"",
     "check": "npm run lint && npm test",
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build && vite build -c vite.server.config.mjs",
+    "package": "node scripts/package-release.mjs",
     "release": "node scripts/release.mjs",
-    "start": "electron-vite preview",
-    "dev": "electron-vite dev",
-    "build": "node scripts/sync-icons.js && electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux"
+    "release:sign": "node scripts/sign-release.mjs",
+    "release:keygen": "node scripts/generate-update-key.mjs"
   },
   "dependencies": {
-    "@electron-toolkit/utils": "^4.0.0",
-    "electron-updater": "^6.8.11",
+    "fflate": "^0.8.3",
     "youtubei.js": "^18.3.0"
   },
   "devDependencies": {
@@ -36,9 +30,6 @@
     "@mantine/notifications": "^9.7.5",
     "@tabler/icons-react": "^3.50.0",
     "@vitejs/plugin-react": "^6.2.1",
-    "electron": "^45.2.2",
-    "electron-builder": "^26.18.0",
-    "electron-vite": "^6.0.0",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -54,10 +45,10 @@
     "vite": "^8.3.5"
   },
   "allowScripts": {
-    "electron-winstaller@5.4.0": true,
     "@parcel/watcher@2.6.0": true
   },
   "engines": {
-    "node": ">=22.12.0"
-  }
+    "node": ">=24.0.0"
+  },
+  "type": "module"
 }

@@ -1,3 +1,4 @@
+import './api/bridge'
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 import './assets/base.scss'
