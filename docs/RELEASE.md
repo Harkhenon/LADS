@@ -8,11 +8,10 @@ GitHub Actions (.github/workflows/release.yaml)
         │  vérifie, construit Windows et Linux, signe si configuré,
         │  puis publie la GitHub Release d'un seul coup
         ▼
-scripts/sync-updates.sh (sur le serveur)
-        │  télécharge, vérifie les empreintes, publie les installeurs puis latest.yml
-        ▼
-https://api.harkhenon.dev/lads ──▶ electron-updater (dans l'application)
+Releases de Harkhenon/LADS ──▶ electron-updater (dans l'application)
 ```
+
+Le dépôt doit rester **public** : l'application lit les releases sans s'authentifier. S'il redevient privé, les mises à jour s'arrêtent pour tout le monde.
 
 ## Publier
 
@@ -22,7 +21,7 @@ Depuis `main`, à jour et sans modification en cours :
 npm run release -- patch
 ```
 
-Remplacez `patch` par `minor`, `major` ou un numéro précis. Un numéro comme `1.2.3-beta.1` crée une préversion, que le serveur de mises à jour ignore. Pour lancer les contrôles sans rien modifier :
+Remplacez `patch` par `minor`, `major` ou un numéro précis. Un numéro comme `1.2.3-beta.1` crée une préversion, que les versions stables de l'application ignorent. Pour lancer les contrôles sans rien modifier :
 
 ```bash
 npm run release -- patch --dry-run
@@ -34,43 +33,35 @@ Suivre le build :
 gh run list --workflow=release.yaml
 ```
 
-## Mise en place sur le serveur (une seule fois)
+## Transition depuis le serveur api.harkhenon.dev (une seule fois)
 
-Le dépôt étant privé, le serveur a besoin d'un jeton pour lire les releases.
+Les versions déjà installées (0.3.0) ne connaissent que l'ancien serveur : elles ne verront jamais les releases GitHub par elles-mêmes. Il faut donc une **version passerelle**, publiée aux deux endroits.
 
-1. Créez un [jeton à accès fin](https://github.com/settings/personal-access-tokens/new) : dépôt `Harkhenon/lads` uniquement, permission **Contents : Read-only**.
-2. Sur le serveur, installez les prérequis et le script :
-
-   ```bash
-   sudo apt install jq curl openssl util-linux
-   sudo install -m 755 sync-updates.sh /usr/local/bin/lads-sync-updates
-   ```
-
-3. Enregistrez le jeton dans un fichier lisible par le seul compte qui lance la synchronisation :
+1. **Testez la mise à jour depuis la 0.3.0** sur une machine ou une VM de test, et vérifiez que les playlists sont conservées. Ce passage (Electron 32 vers 45) n'a pas pu être testé sans modifier une installation réelle.
+2. Vérifiez une dernière fois ce qui deviendra public, puis rendez le dépôt public : à faire avant la première release, sinon l'application ne pourra pas la lire.
 
    ```bash
-   sudo install -m 600 -o www-data /dev/null /etc/lads-sync.env
-   sudoedit /etc/lads-sync.env
+   gh repo edit Harkhenon/LADS --visibility public --accept-visibility-change-consequences
    ```
 
-   Contenu du fichier :
+3. Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise.
+4. Publiez la version passerelle avec `npm run release -- minor`, puis récupérez ses fichiers :
 
-   ```
-   export GITHUB_TOKEN=github_pat_...
-   ```
-
-4. Planifiez la synchronisation (`sudo crontab -u www-data -e`), en adaptant le compte et le dossier servi :
-
-   ```
-   */15 * * * * . /etc/lads-sync.env && /usr/local/bin/lads-sync-updates /var/www/api.harkhenon.dev/lads
+   ```bash
+   gh release download vX.Y.Z -R Harkhenon/LADS -p "lads-*-setup.exe*" -p latest.yml -D passerelle
    ```
 
-Sans nouvelle release, le script s'arrête aussitôt. En cas d'empreinte invalide, il ne publie rien et l'ancienne version reste servie.
+5. Copiez-les sur l'ancien serveur, **l'installeur d'abord et `latest.yml` en dernier** (adaptez le compte et le dossier) :
 
-## Avant la première release de cette branche
+   ```bash
+   scp passerelle/lads-*-setup.exe* compte@harkhenon.dev:/var/www/api.harkhenon.dev/lads/
+   ```
 
-- **Testez la mise à jour depuis la 0.3.0** sur une machine ou une VM de test : installez la 0.3.0, publiez une préversion vers un flux de test, vérifiez que vos playlists sont conservées. Ce passage (Electron 32 vers 45) n'a pas pu être testé sans modifier une installation réelle.
-- Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise, le workflow se sert du jeton temporaire fourni par GitHub.
+   ```bash
+   scp passerelle/latest.yml compte@harkhenon.dev:/var/www/api.harkhenon.dev/lads/
+   ```
+
+6. **Gardez le serveur en ligne** le temps que toutes les installations aient fait cette mise à jour : elles passent alors sur GitHub. Vous pourrez ensuite le fermer. Un poste resté en 0.3.0 ne recevra plus rien et devra réinstaller depuis les [releases](https://github.com/Harkhenon/LADS/releases).
 
 ## Signer le .exe
 
@@ -95,11 +86,11 @@ Aucun certificat ne supprime l'avertissement SmartScreen dès le premier jour : 
 | ------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Azure Artifact Signing**           | environ 9,99 $/mois                                    | Organisations US, Canada, UE, Royaume-Uni. Particuliers : US et Canada seulement | **Déjà câblé dans la CI**                                                                    |
 | **Certificat OV** (Certum, Sectigo…) | 150 à 300 $/an (Certum : dès 109 €/an selon revendeur) | Tout le monde, particuliers compris selon l'autorité                             | À adapter : clé sur jeton ou HSM                                                             |
-| Certum Open Source                   | 69 €, avec carte et lecteur                            | Logiciels libres ; acceptation par Microsoft à vérifier                          | Déconseillé tant que le dépôt est privé                                                      |
-| SignPath Foundation                  | Gratuit                                                | Projets open source éligibles                                                    | Impose un dépôt public                                                                       |
+| Certum Open Source                   | 69 €, avec carte et lecteur                            | Logiciels libres ; acceptation par Microsoft à vérifier                          | Possible une fois le dépôt public ; signature locale, workflow à adapter                     |
+| SignPath Foundation                  | Gratuit                                                | Projets open source éligibles                                                    | Possible une fois le dépôt public, sur acceptation du projet (conditions à vérifier)         |
 | Microsoft Store (MSIX)               | Gratuit                                                | Tous ; validation par Microsoft                                                  | Empaquetage et mises à jour à refaire ; un téléchargeur YouTube risque le refus (à vérifier) |
 
-**Recommandation :** Azure Artifact Signing si l'association « Regards étoilés » ou une autre structure légale peut être le titulaire. Sa fiche d'éligibilité doit être vérifiée au préalable : une source mentionne un historique d'au moins 3 ans. Sinon, un certificat OV au nom d'un particulier.
+**Recommandation :** Azure Artifact Signing si l'association « Regards étoilés » ou une autre structure légale peut être le titulaire. Sa fiche d'éligibilité doit être vérifiée au préalable : une source mentionne un historique d'au moins 3 ans. Sinon, un certificat OV au nom d'un particulier. Le dépôt étant public, une demande à SignPath Foundation vaut aussi l'essai : c'est gratuit, mais le projet doit être accepté.
 
 ### Activer Azure Artifact Signing
 

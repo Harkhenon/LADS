@@ -45,5 +45,6 @@ appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
-  - provider: generic
-    url: https://api.harkhenon.dev/lads
+  - provider: github
+    owner: Harkhenon
+    repo: LADS

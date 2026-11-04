@@ -126,7 +126,7 @@ jobs:
             dist/latest*.yml
 
   # Tout est publié d'un seul coup, seulement si tous les builds ont réussi :
-  # jamais de release partielle que le serveur de mises à jour pourrait récupérer.
+  # jamais de release partielle que l'application pourrait récupérer.
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -149,6 +149,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           FLAGS=(--title "$GITHUB_REF_NAME" --generate-notes --verify-tag)
-          # Une version 1.2.3-beta.1 reste une préversion, ignorée par le serveur de mises à jour.
+          # Une version 1.2.3-beta.1 reste une préversion, ignorée par les versions stables de l'application.
           case "$GITHUB_REF_NAME" in *-*) FLAGS+=(--prerelease) ;; esac
           gh release create "$GITHUB_REF_NAME" "${FLAGS[@]}" release/*

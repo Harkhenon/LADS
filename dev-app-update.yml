@@ -1,3 +1,4 @@
-provider: generic
-url: https://api.harkhenon.dev/lads
+provider: github
+owner: Harkhenon
+repo: LADS
 updaterCacheDirName: lads-updater
