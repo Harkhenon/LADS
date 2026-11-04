@@ -10,7 +10,7 @@ import {
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import PropTypes from 'prop-types'
-import { resolutionOptions } from '../data/mockData'
+import { resolutionOptions } from '../data/options'
 
 KaraokeEditModal.propTypes = {
   opened: PropTypes.bool.isRequired,

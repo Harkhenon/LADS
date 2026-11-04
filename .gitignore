@@ -5,5 +5,12 @@ out
 .eslintcache
 *.log*
 *.code-workspace
-.editorconfig
 reset-lads
+.claude/worktrees/
+
+# Secrets et certificats : ne jamais les versionner
+.env
+.env.*
+*.pfx
+*.p12
+*.key

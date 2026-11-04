@@ -3,7 +3,7 @@ import { IconDownload } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import PropTypes from 'prop-types'
-import { downloadLocationOptions, formatOptions, resolutionOptions } from '../data/mockData'
+import { downloadLocationOptions, formatOptions, resolutionOptions } from '../data/options'
 
 DownloadConfigForm.propTypes = {
   playlists: PropTypes.arrayOf(
@@ -31,7 +31,11 @@ export default function DownloadConfigForm({ playlists, selectedVideo, onStartDo
       customLocation: ''
     },
     validate: {
-      playlist: (value) => (value ? null : 'Sélectionnez une playlist')
+      playlist: (value) => (items.some((p) => p.id === value) ? null : 'Sélectionnez une playlist'),
+      customLocation: (value, values) =>
+        values.location === 'custom' && !value.trim()
+          ? 'Indiquez le chemin complet du dossier'
+          : null
     }
   })
 

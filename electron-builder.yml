@@ -1,17 +1,26 @@
+# Ne pas changer appId sans précaution : le GUID de désinstallation NSIS en dérive. Le modifier
+# installerait une seconde application au lieu de mettre à jour les versions déjà déployées.
 appId: com.electron.app
 productName: lads
 directories:
   buildResources: build
+# Liste blanche : seul ce qui est utile à l'exécution part dans l'installeur.
+# package.json et les dépendances de production sont ajoutés automatiquement.
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - out/**
+  - resources/**
 asarUnpack:
   - resources/**
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
 win:
   executableName: lads
+  # La signature est activée par la CI quand les secrets existent : voir docs/RELEASE.md.
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -20,8 +29,6 @@ nsis:
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false

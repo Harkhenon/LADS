@@ -24,7 +24,6 @@ import {
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import { notifications } from '@mantine/notifications'
-import { testDeleteKaraoke, testUpdateKaraoke } from '../data/testFunctions'
 import { mediaFileToKaraoke } from '../utils/karaoke'
 import PlaylistFormModal from './PlaylistFormModal'
 import PlaylistKaraokeList from './PlaylistKaraokeList'
@@ -57,11 +56,9 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
       return
     }
     const karaokes = files.map(mediaFileToKaraoke)
-    const updated = items.map((p) =>
-      p.id === selectedId ? { ...p, karaoke: [...p.karaoke, ...karaokes] } : p
+    setPlaylists((prev) =>
+      prev.map((p) => (p.id === selectedId ? { ...p, karaoke: [...p.karaoke, ...karaokes] } : p))
     )
-    setPlaylists(updated)
-    await window.playlists.update(updated)
     notifications.show({
       message:
         karaokes.length > 1
@@ -82,11 +79,10 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     setFormOpened(true)
   }
 
-  const handlePlaylistSubmit = async (values) => {
+  const handlePlaylistSubmit = (values) => {
     if (editingPlaylist) {
       const updated = { ...editingPlaylist, ...values }
-      setPlaylists((prev) => (prev ?? []).map((p) => (p.id === updated.id ? updated : p)))
-      await window.playlists.update(items.map((p) => (p.id === updated.id ? updated : p)))
+      setPlaylists((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     } else {
       const created = {
         id: `pl-${crypto.randomUUID()}`,
@@ -94,40 +90,36 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
         description: values.description,
         karaoke: []
       }
-      setPlaylists((prev) => [...(prev ?? []), created])
+      setPlaylists((prev) => [...prev, created])
       setSelectedId(created.id)
-      await window.playlists.update([...items, created])
     }
     setFormOpened(false)
     setEditingPlaylist(null)
   }
 
   const handleDeletePlaylist = (id) => {
-    setPlaylists((prev) => (prev ?? []).filter((p) => p.id !== id))
+    setPlaylists((prev) => prev.filter((p) => p.id !== id))
     if (selectedId === id) {
       setSelectedId(null)
     }
-    window.playlists.update(items.filter((p) => p.id !== id))
   }
 
   const handleUpdateKaraoke = (karaId, updated) => {
     setPlaylists((prev) =>
-      (prev ?? []).map((p) =>
+      prev.map((p) =>
         p.id === selectedId
           ? { ...p, karaoke: p.karaoke.map((k) => (k.id === karaId ? updated : k)) }
           : p
       )
     )
-    testUpdateKaraoke(updated)
   }
 
   const handleDeleteKaraoke = (karaId) => {
     setPlaylists((prev) =>
-      (prev ?? []).map((p) =>
+      prev.map((p) =>
         p.id === selectedId ? { ...p, karaoke: p.karaoke.filter((k) => k.id !== karaId) } : p
       )
     )
-    testDeleteKaraoke(karaId)
   }
 
   return (

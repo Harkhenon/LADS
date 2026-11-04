@@ -19,10 +19,11 @@ const playlistShape = PropTypes.shape({
 })
 
 AnimationPage.propTypes = {
-  playlists: PropTypes.arrayOf(playlistShape).isRequired
+  playlists: PropTypes.arrayOf(playlistShape).isRequired,
+  active: PropTypes.bool
 }
 
-export default function AnimationPage({ playlists }) {
+export default function AnimationPage({ playlists, active = true }) {
   const items = useMemo(() => playlists ?? [], [playlists])
 
   const [playlistId, setPlaylistId] = useState(items[0]?.id ?? '')
@@ -141,6 +142,7 @@ export default function AnimationPage({ playlists }) {
         <Stack gap="md" h="100%">
           <AnimationStage
             track={currentTrack}
+            active={active}
             isPlaying={isPlaying}
             autoAdvance={autoAdvance}
             onAutoAdvanceChange={setAutoAdvance}

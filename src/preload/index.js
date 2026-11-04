@@ -1,7 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 
 import packagejson from '../../package.json'
+
+// Ce preload tourne dans le bac à sable : seul un jeu fermé de fonctions est exposé à l'interface,
+// jamais ipcRenderer lui-même.
 
 const UPDATE_CHANNELS = {
   event: 'lads:update-event',
@@ -25,29 +27,20 @@ const MEDIA_CHANNELS = {
 
 const YT_DLP_CHANNELS = {
   event: 'lads:ytdlp-event',
-  binaryStatus: 'lads:ytdlp-binary-status',
-  binaryDownload: 'lads:ytdlp-binary-download',
   ensureTools: 'lads:ytdlp-ensure-tools',
   downloadStart: 'lads:ytdlp-download-start',
   downloadCancel: 'lads:ytdlp-download-cancel'
 }
 
-const nonceArg = process.argv.find((arg) => arg.startsWith('--csp-nonce='))
-const nonceValue = nonceArg ? nonceArg.split('=')[1] : ''
-
 const youtube = {
   search: (texte) => ipcRenderer.invoke(YOUTUBE_CHANNEL.search, texte)
 }
 
-// Media APIs for renderer
 const media = {
   pickFiles: () => ipcRenderer.invoke(MEDIA_CHANNELS.pickFiles)
 }
 
-// yt-dlp APIs for renderer
 const ytdlp = {
-  getBinaryStatus: () => ipcRenderer.invoke(YT_DLP_CHANNELS.binaryStatus),
-  downloadBinary: () => ipcRenderer.invoke(YT_DLP_CHANNELS.binaryDownload),
   ensureTools: () => ipcRenderer.invoke(YT_DLP_CHANNELS.ensureTools),
   startDownload: (config) => ipcRenderer.invoke(YT_DLP_CHANNELS.downloadStart, config),
   cancelDownload: (id) => ipcRenderer.invoke(YT_DLP_CHANNELS.downloadCancel, id),
@@ -58,17 +51,11 @@ const ytdlp = {
   }
 }
 
-// Playlists APIs for renderer
-
 const playlists = {
   read: () => ipcRenderer.invoke(PLAYLISTS_CHANNEL.read),
   update: (playlists) => ipcRenderer.invoke(PLAYLISTS_CHANNEL.update, playlists)
 }
 
-// Custom APIs for renderer
-const api = {}
-
-// Update APIs for renderer
 const updater = {
   checkForUpdates: () => ipcRenderer.invoke(UPDATE_CHANNELS.check),
   downloadUpdate: () => ipcRenderer.invoke(UPDATE_CHANNELS.download),
@@ -89,31 +76,12 @@ const base = {
     main: packagejson.main,
     author: packagejson.author,
     homepage: packagejson.homepage
-  }),
-  nonce: nonceValue
+  })
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('base', base)
-    contextBridge.exposeInMainWorld('updater', updater)
-    contextBridge.exposeInMainWorld('playlists', playlists)
-    contextBridge.exposeInMainWorld('youtube', youtube)
-    contextBridge.exposeInMainWorld('ytdlp', ytdlp)
-    contextBridge.exposeInMainWorld('media', media)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  window.electron = electronAPI
-  window.api = api
-  window.ytdlp = ytdlp
-  window.media = media
-  window.base = base
-  window.updater = updater
-}
+contextBridge.exposeInMainWorld('base', base)
+contextBridge.exposeInMainWorld('updater', updater)
+contextBridge.exposeInMainWorld('playlists', playlists)
+contextBridge.exposeInMainWorld('youtube', youtube)
+contextBridge.exposeInMainWorld('ytdlp', ytdlp)
+contextBridge.exposeInMainWorld('media', media)

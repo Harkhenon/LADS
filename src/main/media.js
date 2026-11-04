@@ -1,14 +1,11 @@
 import { ipcMain, dialog } from 'electron'
 import { statSync } from 'node:fs'
 import { basename, extname } from 'node:path'
+import { AUDIO_EXTENSIONS, MEDIA_EXTENSIONS } from './lib/validation.mjs'
 
 const MEDIA_CHANNELS = {
   pickFiles: 'lads:media-pick-files'
 }
-
-const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.ogg', '.m4a']
-const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.avi']
-const MEDIA_EXTENSIONS = [...AUDIO_EXTENSIONS, ...VIDEO_EXTENSIONS]
 
 function toMediaFile(filePath, folder) {
   const ext = extname(filePath).toLowerCase()

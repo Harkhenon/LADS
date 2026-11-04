@@ -1,18 +1,24 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { is } from '@electron-toolkit/utils'
-import { mkdirSync, existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import fs from 'node:fs/promises'
+import { spawn, spawnSync } from 'node:child_process'
 import { join, extname } from 'node:path'
+import { createInterface } from 'node:readline'
 import crypto from 'node:crypto'
-import YTDlpWrapModule from 'yt-dlp-wrap'
 import { ensureJsRuntime } from './jsruntime'
-import { ensureFfmpeg, isFfmpegReady, ffmpegPath } from './ffmpeg'
-
-const YTDlpWrap = YTDlpWrapModule.default ?? YTDlpWrapModule
+import { ensureFfmpeg } from './ffmpeg'
+import { YT_DLP, platformKey } from './lib/toolPins.mjs'
+import {
+  findChecksum,
+  parseYtDlpProgress,
+  summarizeYtDlpError,
+  validateDownloadConfig
+} from './lib/validation.mjs'
+import { binDir, fetchText, fetchVerified, installBinary, sha256File } from './tools'
 
 const YT_DLP_CHANNELS = {
   event: 'lads:ytdlp-event',
-  binaryStatus: 'lads:ytdlp-binary-status',
-  binaryDownload: 'lads:ytdlp-binary-download',
   ensureTools: 'lads:ytdlp-ensure-tools',
   downloadStart: 'lads:ytdlp-download-start',
   downloadCancel: 'lads:ytdlp-download-cancel'
@@ -27,26 +33,16 @@ const RESOLUTION_HEIGHTS = {
   '360p': 360
 }
 
-const DOWNLOAD_LOCATIONS = ['documents', 'desktop', 'music', 'custom']
+const MAX_STDERR_LENGTH = 16 * 1024
 
-let ytDlpWrap = null
+let binaryChecked = false
 let jsRuntimeSpec = null
 let ffmpegLocation = null
-let stateReady = false
 let ensureToolsPromise = null
 const downloads = new Map()
 
 function binaryPath() {
-  const fileName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'
-  return join(app.getPath('userData'), 'bin', fileName)
-}
-
-function getBinaryStatus() {
-  return {
-    state: existsSync(binaryPath()) ? 'ready' : 'missing',
-    path: binaryPath(),
-    version: null
-  }
+  return join(binDir(), process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp')
 }
 
 function broadcastEvent(event, payload) {
@@ -56,7 +52,7 @@ function broadcastEvent(event, payload) {
 }
 
 function resolveOutputDir(config) {
-  if (config.location === 'custom' && config.customLocation) {
+  if (config.location === 'custom') {
     return config.customLocation
   }
   if (config.location === 'desktop') {
@@ -68,8 +64,10 @@ function resolveOutputDir(config) {
   return join(app.getPath('documents'), 'LADS')
 }
 
-function buildArgs(config) {
-  const args = [`https://www.youtube.com/watch?v=${config.videoId}`]
+function buildArgs(config, outputDir, resultFile) {
+  // --ignore-config et --no-plugin-dirs : un fichier de configuration ou un plugin yt-dlp présent
+  // sur le poste (qui peut contenir --exec) ne doit pas influencer l'application.
+  const args = ['--ignore-config', '--no-plugin-dirs', '--no-playlist', '--newline', '--no-mtime']
   if (jsRuntimeSpec) {
     args.push('--js-runtimes', jsRuntimeSpec)
   }
@@ -91,87 +89,91 @@ function buildArgs(config) {
       args.push('-f', `b[ext=mp4][height<=${height}]/b[height<=${height}]/b`)
     }
   }
-  args.push('--newline')
-  args.push('-o', join(resolveOutputDir(config), '%(title)s.%(ext)s'))
+  // -P n'interprète pas les « % » d'un nom de dossier, contrairement à -o.
+  args.push('-P', outputDir, '-o', '%(title)s.%(ext)s')
+  // yt-dlp indique lui-même le fichier final : rien à deviner, même avec plusieurs téléchargements.
+  args.push('--print-to-file', 'after_move:filepath', resultFile)
+  args.push('--', `https://www.youtube.com/watch?v=${config.videoId}`)
   return args
 }
 
+async function readResultFile(resultFile) {
+  try {
+    const lines = (await fs.readFile(resultFile, 'utf8')).split(/\r?\n/).filter(Boolean)
+    return lines.at(-1) ?? null
+  } catch {
+    return null
+  } finally {
+    await fs.rm(resultFile, { force: true }).catch(() => {})
+  }
+}
+
+// Solution de repli si yt-dlp n'a rien écrit dans le fichier de résultat.
 function findOutputFile(outputDir, startedAt, format) {
   const extensions =
     format === 'audio' ? ['.mp3', '.m4a', '.webm', '.opus'] : ['.mp4', '.mkv', '.webm']
   let best = null
   let bestMtime = 0
-  for (const name of readdirSync(outputDir)) {
-    const filePath = join(outputDir, name)
-    try {
-      const stats = statSync(filePath)
-      const ext = extname(name).toLowerCase()
-      if (stats.isFile() && stats.mtimeMs >= startedAt && extensions.includes(ext)) {
-        if (stats.mtimeMs > bestMtime) {
-          best = filePath
-          bestMtime = stats.mtimeMs
+  try {
+    for (const name of readdirSync(outputDir)) {
+      const filePath = join(outputDir, name)
+      try {
+        const stats = statSync(filePath)
+        const ext = extname(name).toLowerCase()
+        if (stats.isFile() && stats.mtimeMs >= startedAt && extensions.includes(ext)) {
+          if (stats.mtimeMs > bestMtime) {
+            best = filePath
+            bestMtime = stats.mtimeMs
+          }
         }
+      } catch {
+        // fichier inaccessible, on l'ignore
       }
-    } catch {
-      // fichier inaccessible, on l'ignore
     }
+  } catch {
+    return null
   }
   return best
 }
 
-function sanitizeProgress(progress) {
-  const percent = Number.isFinite(progress.percent) ? progress.percent : null
-  return {
-    percent,
-    totalSize: progress.totalSize ?? null,
-    speed: progress.currentSpeed ?? null,
-    eta: progress.eta ?? null
+// Télécharge yt-dlp ou le met à jour : YouTube casse régulièrement les anciennes versions.
+// Sans réseau, ou si la mise à jour échoue, on garde la version déjà installée.
+async function ensureBinary() {
+  const assetName = YT_DLP.assets[platformKey()]
+  if (!assetName) {
+    throw new Error(`yt-dlp n'est pas disponible pour ${platformKey()}.`)
   }
-}
-
-async function downloadBinary() {
-  const status = getBinaryStatus()
-  if (status.state === 'ready') {
-    return status
-  }
-  broadcastEvent('binary-downloading')
-  mkdirSync(join(app.getPath('userData'), 'bin'), { recursive: true })
+  const path = binaryPath()
+  const alreadyInstalled = existsSync(path)
   try {
-    const version = await YTDlpWrap.getGithubReleases(1, 1).then((releases) => releases[0].tag_name)
-    await YTDlpWrap.downloadFromGithub(binaryPath(), version)
-    const ready = { ...getBinaryStatus(), version }
-    broadcastEvent('binary-ready', ready)
-    return ready
+    const sums = await fetchText(`${YT_DLP.baseUrl}/${YT_DLP.sumsFile}`)
+    const expected = findChecksum(sums, assetName)
+    if (!expected) {
+      throw new Error(`Empreinte de ${assetName} introuvable.`)
+    }
+    if ((await sha256File(path)) === expected) {
+      return
+    }
+    broadcastEvent('binary-downloading')
+    await installBinary(path, await fetchVerified(`${YT_DLP.baseUrl}/${assetName}`, expected))
+    broadcastEvent('binary-ready')
   } catch (error) {
-    broadcastEvent('binary-error', { message: String(error?.message ?? error) })
-    throw error
+    if (!alreadyInstalled) {
+      throw error
+    }
+    console.warn('[yt-dlp] mise à jour impossible, version installée conservée :', error.message)
   }
-}
-
-async function ensureReadyForDownload() {
-  if (stateReady) {
-    return
-  }
-  if (!ensureToolsPromise) {
-    ensureToolsPromise = (async () => {
-      await ensureToolsSteps()
-      stateReady = true
-    })().finally(() => {
-      ensureToolsPromise = null
-    })
-  }
-  return ensureToolsPromise
 }
 
 async function ensureToolsSteps() {
-  const status = getBinaryStatus()
-  if (status.state !== 'ready') {
+  if (!binaryChecked) {
     try {
-      await downloadBinary()
+      await ensureBinary()
+      binaryChecked = true
     } catch (error) {
-      throw new Error(
-        `Installation automatique de yt-dlp échouée : ${String(error?.message ?? error)}`
-      )
+      const message = String(error?.message ?? error)
+      broadcastEvent('binary-error', { message })
+      throw new Error(`Installation automatique de yt-dlp échouée : ${message}`, { cause: error })
     }
   }
   if (!jsRuntimeSpec) {
@@ -184,65 +186,101 @@ async function ensureToolsSteps() {
       throw error
     }
   }
-  if (!ffmpegLocation && !isFfmpegReady()) {
+  if (!ffmpegLocation) {
     broadcastEvent('ffmpeg-downloading')
     try {
       ffmpegLocation = await ensureFfmpeg()
       broadcastEvent('ffmpeg-ready')
     } catch (error) {
+      // Non bloquant : sans ffmpeg, yt-dlp se rabat sur les formats sans conversion.
+      // ffmpegLocation reste vide : une nouvelle tentative aura lieu au prochain téléchargement.
       broadcastEvent('ffmpeg-error', { message: String(error?.message ?? error) })
     }
-  } else if (!ffmpegLocation) {
-    ffmpegLocation = ffmpegPath()
   }
-  stateReady = true
   broadcastEvent('tools-ready')
 }
 
+function ensureReadyForDownload() {
+  if (binaryChecked && jsRuntimeSpec && ffmpegLocation) {
+    return Promise.resolve()
+  }
+  if (!ensureToolsPromise) {
+    ensureToolsPromise = ensureToolsSteps().finally(() => {
+      ensureToolsPromise = null
+    })
+  }
+  return ensureToolsPromise
+}
+
 async function startDownload(config) {
+  const invalid = validateDownloadConfig(config)
+  if (invalid) {
+    throw new Error(invalid)
+  }
   await ensureReadyForDownload()
-  if (!config.videoId) {
-    throw new Error('Aucune vidéo sélectionnée.')
-  }
-  if (!DOWNLOAD_LOCATIONS.includes(config.location)) {
-    throw new Error('Emplacement de téléchargement invalide.')
-  }
 
   const id = crypto.randomUUID()
   const outputDir = resolveOutputDir(config)
   mkdirSync(outputDir, { recursive: true })
   const startedAt = Date.now()
+  const resultFile = join(app.getPath('temp'), `lads-${id}.txt`)
 
-  const emitter = ytDlpWrap.exec(buildArgs(config))
-  downloads.set(id, {
-    process: emitter.ytDlpProcess,
-    cancelled: false,
-    outputDir,
-    startedAt,
-    config
+  // Pas de shell : les arguments arrivent tels quels à yt-dlp, sans interprétation.
+  const child = spawn(binaryPath(), buildArgs(config, outputDir, resultFile), {
+    windowsHide: true,
+    cwd: binDir(),
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+  downloads.set(id, { process: child, cancelled: false })
+
+  createInterface({ input: child.stdout }).on('line', (line) => {
+    const progress = parseYtDlpProgress(line)
+    if (progress) {
+      broadcastEvent('download-progress', { id, ...progress })
+    }
   })
 
-  emitter.on('progress', (progress) => {
-    broadcastEvent('download-progress', { id, ...sanitizeProgress(progress) })
+  let stderrTail = ''
+  child.stderr.on('data', (chunk) => {
+    stderrTail = `${stderrTail}${chunk}`.slice(-MAX_STDERR_LENGTH)
   })
-  emitter.on('close', () => {
+
+  // 'error' (lancement impossible) et 'close' peuvent se suivre : un seul résultat est annoncé.
+  const finish = async (exitCode, failure) => {
     const entry = downloads.get(id)
-    if (entry?.cancelled) {
-      broadcastEvent('download-cancelled', { id })
-    } else {
-      broadcastEvent('download-completed', {
-        id,
-        filePath: findOutputFile(entry.outputDir, entry.startedAt, entry.config.format)
-      })
+    if (!entry) {
+      return
     }
     downloads.delete(id)
-  })
-  emitter.on('error', (error) => {
-    broadcastEvent('download-error', { id, message: String(error?.message ?? error) })
-    downloads.delete(id)
-  })
+    const reported = await readResultFile(resultFile)
+    if (entry.cancelled) {
+      broadcastEvent('download-cancelled', { id })
+    } else if (exitCode === 0) {
+      broadcastEvent('download-completed', {
+        id,
+        filePath: reported ?? findOutputFile(outputDir, startedAt, config.format)
+      })
+    } else {
+      broadcastEvent('download-error', {
+        id,
+        message: summarizeYtDlpError(failure?.message ?? stderrTail)
+      })
+    }
+  }
+  child.on('error', (error) => finish(null, error))
+  child.on('close', (code) => finish(code))
 
   return { id }
+}
+
+// Sous Windows, yt-dlp.exe lance un processus enfant (et ffmpeg) : tuer le parent ne suffit pas.
+function killProcessTree(child) {
+  if (process.platform === 'win32' && child.pid) {
+    const taskkill = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'taskkill.exe')
+    spawnSync(taskkill, ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true })
+  } else {
+    child.kill()
+  }
 }
 
 function cancelDownload(id) {
@@ -251,19 +289,25 @@ function cancelDownload(id) {
     return false
   }
   entry.cancelled = true
-  entry.process.kill()
+  killProcessTree(entry.process)
   return true
 }
 
-function downloadBinaryInDev() {
-  console.log('[LADS test] Téléchargement du binaire yt-dlp (dev)')
-  broadcastEvent('binary-downloading')
-  setTimeout(() => {
-    broadcastEvent('binary-ready', { state: 'ready', version: '2025.01.01-mock' })
-  }, 1200)
+export function cancelAllDownloads() {
+  for (const id of [...downloads.keys()]) {
+    if (is.dev) {
+      cancelDownloadInDev(id)
+    } else {
+      cancelDownload(id)
+    }
+  }
 }
 
 function startDownloadInDev(config) {
+  const invalid = validateDownloadConfig(config)
+  if (invalid) {
+    throw new Error(invalid)
+  }
   console.log('[LADS test] Lancement téléchargement', config)
   const id = crypto.randomUUID()
   let percent = 0
@@ -278,6 +322,7 @@ function startDownloadInDev(config) {
     })
     if (percent >= 100) {
       clearInterval(timer)
+      downloads.delete(id)
       broadcastEvent('download-completed', { id })
     }
   }, 300)
@@ -296,24 +341,6 @@ function cancelDownloadInDev(id) {
   return true
 }
 
-export default function ytdlp() {
-  ytDlpWrap = new YTDlpWrap(binaryPath())
-
-  ipcMain.handle(YT_DLP_CHANNELS.binaryStatus, () => getBinaryStatus())
-  ipcMain.handle(YT_DLP_CHANNELS.downloadStart, (_event, config) =>
-    is.dev ? startDownloadInDev(config) : startDownload(config)
-  )
-  ipcMain.handle(YT_DLP_CHANNELS.downloadCancel, (_event, id) =>
-    is.dev ? cancelDownloadInDev(id) : cancelDownload(id)
-  )
-  ipcMain.handle(YT_DLP_CHANNELS.binaryDownload, () =>
-    is.dev ? downloadBinaryInDev() : downloadBinary()
-  )
-  ipcMain.handle(YT_DLP_CHANNELS.ensureTools, () =>
-    is.dev ? ensureToolsInDev() : ensureReadyForDownload()
-  )
-}
-
 async function ensureToolsInDev() {
   console.log('[LADS test] Installation automatique des outils (dev)')
   broadcastEvent('binary-downloading')
@@ -326,6 +353,18 @@ async function ensureToolsInDev() {
   await new Promise((r) => setTimeout(r, 800))
   broadcastEvent('ffmpeg-ready')
   broadcastEvent('tools-ready')
+}
+
+export default function ytdlp() {
+  ipcMain.handle(YT_DLP_CHANNELS.downloadStart, (_event, config) =>
+    is.dev ? startDownloadInDev(config) : startDownload(config)
+  )
+  ipcMain.handle(YT_DLP_CHANNELS.downloadCancel, (_event, id) =>
+    is.dev ? cancelDownloadInDev(id) : cancelDownload(id)
+  )
+  ipcMain.handle(YT_DLP_CHANNELS.ensureTools, () =>
+    is.dev ? ensureToolsInDev() : ensureReadyForDownload()
+  )
 }
 
 export { YT_DLP_CHANNELS }

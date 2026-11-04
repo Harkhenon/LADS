@@ -1,35 +1,58 @@
 import { ipcMain } from 'electron'
 
-let Youtube = null
+const MAX_QUERY_LENGTH = 300
+const MAX_RESULTS = 5
 
-async function initYoutube() {
-  const { Innertube } = await import('youtubei.js')
-  Youtube = await Innertube.create()
+let sessionPromise = null
+
+// Session créée à la première recherche : démarrer sans réseau ne doit rien casser.
+// retrieve_player: false, car la recherche n'a pas besoin du lecteur JavaScript de YouTube.
+function getSession() {
+  if (!sessionPromise) {
+    sessionPromise = import('youtubei.js')
+      .then(({ Innertube }) => Innertube.create({ retrieve_player: false }))
+      .catch((error) => {
+        sessionPromise = null
+        throw error
+      })
+  }
+  return sessionPromise
 }
 
-// Fonction pour extraire les données utiles d'une vidéo
+// Vidéo en direct, avant-première… : YouTube omet certains champs selon le type de résultat.
 function extractVideoData(video) {
   return {
     id: video.video_id,
-    title: video.title.text,
+    title: video.title?.text ?? 'Sans titre',
     author: {
-      id: video.author.id,
-      name: video.author.name
+      id: video.author?.id ?? null,
+      name: video.author?.name ?? 'Auteur inconnu'
     },
-    url: `https://youtube.com/embed/${video.video_id}`,
-    thumbnails: video.thumbnails?.map((t) => t.url),
-    duration: video.length_text.text,
-    published: video.published.text
+    url: `https://www.youtube.com/embed/${video.video_id}`,
+    thumbnails: video.thumbnails?.map((t) => t.url) ?? [],
+    duration: video.length_text?.text ?? '',
+    published: video.published?.text ?? ''
+  }
+}
+
+async function search(texte) {
+  const session = await getSession()
+  try {
+    return await session.search(texte)
+  } catch {
+    // Session expirée : on en recrée une et on retente une seule fois.
+    sessionPromise = null
+    return (await getSession()).search(texte)
   }
 }
 
 export default function youtube() {
-  initYoutube().then(() => {
-    ipcMain.handle('youtube:search', async (event, texte) => {
-      const results = await Youtube.search(texte)
-      const resultats = results.videos.slice(0, 5)
-
-      return await resultats.map((r) => extractVideoData(r))
-    })
+  ipcMain.handle('youtube:search', async (_event, texte) => {
+    const query = typeof texte === 'string' ? texte.trim().slice(0, MAX_QUERY_LENGTH) : ''
+    if (!query) {
+      return []
+    }
+    const results = await search(query)
+    return results.videos.slice(0, MAX_RESULTS).map(extractVideoData)
   })
 }

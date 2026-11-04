@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 const TOOL_EVENTS = {
   'binary-downloading': { tool: 'binary', state: 'busy' },
@@ -15,10 +15,11 @@ const TOOL_EVENTS = {
 
 const initialTools = { binary: 'pending', runtime: 'pending', ffmpeg: 'pending' }
 
-export default function useToolsInstall() {
+export default function useToolsInstall(enabled = true) {
   const [tools, setTools] = useState(initialTools)
   const [error, setError] = useState(null)
   const [installed, setInstalled] = useState(false)
+  const startedRef = useRef(false)
 
   const runInstall = useCallback(async () => {
     setError(null)
@@ -30,6 +31,17 @@ export default function useToolsInstall() {
       setError(String(e?.message ?? e))
     }
   }, [])
+
+  // L'installation (téléchargement de plus de 100 Mo) attend la première visite de l'onglet.
+  useEffect(() => {
+    if (enabled && !startedRef.current) {
+      startedRef.current = true
+      window.ytdlp
+        .ensureTools()
+        .then(() => setInstalled(true))
+        .catch((e) => setError(String(e?.message ?? e)))
+    }
+  }, [enabled])
 
   useEffect(() => {
     let cancelled = false
@@ -56,10 +68,6 @@ export default function useToolsInstall() {
         return { ...current, [info.tool]: info.state }
       })
     })
-
-    if (!cancelled) {
-      window.ytdlp.ensureTools().catch(() => {})
-    }
 
     return () => {
       cancelled = true
