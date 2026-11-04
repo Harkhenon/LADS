@@ -11,8 +11,8 @@ import {
   parseYtDlpProgress,
   summarizeYtDlpError,
   validateDownloadConfig
-} from '../src/main/lib/validation.mjs'
-import { DENO, FFMPEG, YT_DLP } from '../src/main/lib/toolPins.mjs'
+} from '../src/server/lib/validation.mjs'
+import { FFMPEG, NODE_RUNTIME, YT_DLP } from '../src/server/lib/toolPins.mjs'
 
 const absolute = (name) => path.resolve(name)
 
@@ -109,8 +109,8 @@ test('summarizeYtDlpError garde la dernière ligne ERROR', () => {
 })
 
 test('toolPins : empreintes complètes et bien formées', () => {
-  for (const tool of [DENO, FFMPEG]) {
-    assert.ok(tool.baseUrl.startsWith('https://github.com/'))
+  for (const tool of [NODE_RUNTIME, FFMPEG]) {
+    assert.ok(tool.baseUrl.startsWith('https://'))
     assert.ok(tool.baseUrl.includes(tool.version))
     for (const [key, asset] of Object.entries(tool.assets)) {
       assert.match(asset.sha256, /^[a-f0-9]{64}$/, key)

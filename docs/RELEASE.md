@@ -1,129 +1,108 @@
-# Publier une version de LADS
+# Publier et installer LADS
+
+LADS n'est plus un programme Electron. C'est un petit serveur local, exécuté par `node.exe` (signé par OpenJS), dont l'interface s'ouvre dans Edge ou Chrome.
 
 ```
 npm run release -- minor
-        │  contrôles (lint, tests, build, audit), commit de version, tag, push
+        │  contrôles, commit de version, tag, push
         ▼
 GitHub Actions (.github/workflows/release.yaml)
-        │  vérifie, construit Windows et Linux, signe si configuré,
-        │  puis publie la GitHub Release d'un seul coup
+        │  construit l'application et crée un BROUILLON de release
         ▼
-Releases de Harkhenon/LADS ──▶ electron-updater (dans l'application)
+Votre PC (scripts/sign-release.mjs)
+        │  vérifie le brouillon, le signe avec votre clé, le publie
+        ▼
+Releases de Harkhenon/LADS ──▶ LADS se met à jour seul sur les postes
 ```
 
-Le dépôt doit rester **public** : l'application lit les releases sans s'authentifier. S'il redevient privé, les mises à jour s'arrêtent pour tout le monde.
+Le dépôt doit rester **public** : LADS lit les releases sans s'authentifier.
 
-## Publier
+## Première mise en place (une seule fois)
 
-Depuis `main`, à jour et sans modification en cours :
+1. Dans un terminal, créez la clé de signature des mises à jour :
+
+   ```bash
+   npm run release:keygen
+   ```
+
+   La clé privée va dans `%USERPROFILE%\.lads\update-signing-key.pem`, chiffrée par une phrase secrète que vous choisissez. La clé publique va dans `update-public-key.pem`.
+
+2. **Sauvegardez la clé privée et sa phrase secrète hors de ce PC**, par exemple dans un gestionnaire de mots de passe. Sans elles, plus aucune mise à jour ne peut être publiée : il faudrait réinstaller LADS à la main sur chaque poste.
+3. Commitez `update-public-key.pem`. Ne commitez jamais la clé privée.
+
+## Publier une version
+
+Depuis `main`, à jour et sans modification en cours, **dans un terminal** (la phrase secrète est demandée à la fin) :
 
 ```bash
 npm run release -- patch
 ```
 
-Remplacez `patch` par `minor`, `major` ou un numéro précis. Un numéro comme `1.2.3-beta.1` crée une préversion, que les versions stables de l'application ignorent. Pour lancer les contrôles sans rien modifier :
+Remplacez `patch` par `minor`, `major` ou un numéro précis. Pour lancer les contrôles sans rien modifier :
 
 ```bash
 npm run release -- patch --dry-run
 ```
 
-Suivre le build :
+Si la publication s'interrompt après le build, reprenez-la sans tout relancer :
 
 ```bash
-gh run list --workflow=release.yaml
+npm run release:sign -- vX.Y.Z
 ```
 
-## Avant la première release (une seule fois)
+Une version comme `1.2.3-beta.1` reste une préversion : les postes ne la reçoivent pas.
 
-1. Vérifiez une dernière fois ce qui deviendra public, puis rendez le dépôt public : sans cela, l'application ne pourra pas lire les releases.
+## Installer LADS sur un PC (une seule fois)
 
-   ```bash
-   gh repo edit Harkhenon/LADS --visibility public --accept-visibility-change-consequences
-   ```
+Dans PowerShell, sur le PC concerné, sans droits administrateur :
 
-2. Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise.
-3. Publiez, installez cette version, puis publiez-en une deuxième : c'est le seul moyen de vérifier la mise à jour automatique de bout en bout. Vérifiez aussi que les playlists sont conservées.
-
-## Signer le .exe
-
-### Ce que la signature change, et ne change pas
-
-| Protection Windows | Sans signature                                                                | Avec signature                                                                                    |
-| ------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| SmartScreen        | « Windows a protégé votre PC », la réputation repart de zéro à chaque version | Avertissement possible au début, avec votre nom ; la réputation se cumule d'une version à l'autre |
-| Smart App Control  | Exécution bloquée sauf bonne réputation                                       | Exécution autorisée avec un certificat reconnu                                                    |
-
-Aucun certificat ne supprime l'avertissement SmartScreen dès le premier jour : d'après Microsoft, les certificats EV n'offrent plus ce passe-droit depuis 2024, et la réputation peut demander plusieurs semaines et des centaines d'installations. Inutile de payer un EV pour cela. Seul le Microsoft Store évite tout avertissement.
-
-**À savoir :**
-
-- LADS télécharge `yt-dlp.exe`, `ffmpeg.exe` et parfois `deno.exe`. Ils ne sont pas couverts par votre signature. Ils ont bien démarré sur un poste avec Smart App Control actif lors des tests, mais rien ne le garantit dans la durée.
-- Microsoft déconseille de signer ce qui peut être classé « application potentiellement indésirable », sous peine de réputation négative du certificat. Un téléchargeur YouTube peut être concerné : surveillez cela après les premières releases signées.
-- **Après la première version signée, chaque mise à jour doit être signée par le même éditeur** (`publisherName`), sinon electron-updater la refusera. Si le nom change, publiez d'abord une version intermédiaire qui accepte les deux noms.
-
-### Quelle option choisir
-
-| Option                               | Coût indicatif                                         | Pour qui                                                                         | Dans ce projet                                                                               |
-| ------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Azure Artifact Signing**           | environ 9,99 $/mois                                    | Organisations US, Canada, UE, Royaume-Uni. Particuliers : US et Canada seulement | **Déjà câblé dans la CI**                                                                    |
-| **Certificat OV** (Certum, Sectigo…) | 150 à 300 $/an (Certum : dès 109 €/an selon revendeur) | Tout le monde, particuliers compris selon l'autorité                             | À adapter : clé sur jeton ou HSM                                                             |
-| Certum Open Source                   | 69 €, avec carte et lecteur                            | Logiciels libres ; acceptation par Microsoft à vérifier                          | Possible une fois le dépôt public ; signature locale, workflow à adapter                     |
-| SignPath Foundation                  | Gratuit                                                | Projets open source éligibles                                                    | Possible une fois le dépôt public, sur acceptation du projet (conditions à vérifier)         |
-| Microsoft Store (MSIX)               | Gratuit                                                | Tous ; validation par Microsoft                                                  | Empaquetage et mises à jour à refaire ; un téléchargeur YouTube risque le refus (à vérifier) |
-
-**Recommandation :** Azure Artifact Signing si l'association « Regards étoilés » ou une autre structure légale peut être le titulaire. Sa fiche d'éligibilité doit être vérifiée au préalable : une source mentionne un historique d'au moins 3 ans. Sinon, un certificat OV au nom d'un particulier. Le dépôt étant public, une demande à SignPath Foundation vaut aussi l'essai : c'est gratuit, mais le projet doit être accepté.
-
-### Activer Azure Artifact Signing
-
-1. Sur le [portail Azure](https://portal.azure.com) (abonnement payant, pas d'essai gratuit), créez un compte **Artifact Signing**, puis faites valider l'identité de la structure (comptez quelques jours ouvrés).
-2. Créez un **profil de certificat** de type _Public Trust_.
-3. Créez une **inscription d'application** dans Microsoft Entra ID avec un secret client, et donnez-lui le rôle **Artifact Signing Certificate Profile Signer** sur le compte.
-4. Ajoutez ces secrets au dépôt (Settings → Secrets and variables → Actions) :
-
-   | Secret                                 | Valeur                                                                 |
-   | -------------------------------------- | ---------------------------------------------------------------------- |
-   | `AZURE_TENANT_ID`                      | ID du locataire                                                        |
-   | `AZURE_CLIENT_ID`                      | ID de l'application                                                    |
-   | `AZURE_CLIENT_SECRET`                  | Secret client                                                          |
-   | `AZURE_CODE_SIGNING_ENDPOINT`          | Ex. `https://weu.codesigning.azure.net/`                               |
-   | `AZURE_CODE_SIGNING_ACCOUNT_NAME`      | Nom du compte                                                          |
-   | `AZURE_CODE_SIGNING_CERT_PROFILE_NAME` | Nom du profil                                                          |
-   | `AZURE_CODE_SIGNING_PUBLISHER_NAME`    | Nom commun (CN) **exact** du certificat, utilisé pour les mises à jour |
-
-5. Publiez une préversion : le workflow contrôle la signature et échoue si elle est absente ou invalide. Sans ces secrets, il produit un installeur non signé et affiche un avertissement.
-
-### Signer avec un certificat OV
-
-La clé étant sur un jeton ou un HSM, la signature se fait sur le poste où il est branché. Le certificat doit y être visible dans le magasin Windows :
-
-```bash
-npm run build
+```powershell
+$f = "$env:TEMP\lads-install.ps1"; Invoke-WebRequest -UseBasicParsing https://github.com/Harkhenon/LADS/releases/latest/download/install.ps1 -OutFile $f; powershell -NoProfile -ExecutionPolicy Bypass -File $f
 ```
 
-```bash
-npx electron-builder --win --publish never -c.win.signtoolOptions.certificateSha1=EMPREINTE -c.win.signtoolOptions.publisherName="NOM DU CERTIFICAT"
-```
+Une icône **LADS** apparaît sur le Bureau, et c'est tout ce que l'utilisateur aura à connaître.
 
-Le workflow actuel publierait un `.exe` non signé : si vous choisissez cette voie, il faudra l'adapter pour que seul l'installeur signé soit publié.
+**Ne téléchargez pas `install.ps1` avec un navigateur, et ne déplacez pas LADS via un zip téléchargé :** Windows marquerait les fichiers comme venant d'Internet, et Smart App Control refuserait alors le raccourci. La commande ci-dessus n'ajoute pas cette marque.
 
-### En attendant
+Les playlists de `%APPDATA%\lads` sont reprises. Si une ancienne version Electron (0.4.x) est installée, désinstallez-la depuis les Paramètres de Windows : elle ne recevra plus de mise à jour.
 
-Prévenez vos utilisateurs. Avec SmartScreen : « Informations complémentaires », puis « Exécuter quand même ». Avec Smart App Control actif, l'installeur peut être bloqué sans exception possible. C'est ce qui s'est produit lors des tests sur un poste de développement, où un build local non signé a été refusé. Ne désactivez ce réglage qu'en connaissance de cause.
+Pour désinstaller, supprimez l'icône et le dossier `%LOCALAPPDATA%\Programs\LADS`. Les playlists restent dans `%APPDATA%\lads`.
 
-## Mettre à jour les outils embarqués
+## Comment fonctionnent les mises à jour
 
-Deno et ffmpeg sont épinglés par version et empreinte dans [`src/main/lib/toolPins.mjs`](../src/main/lib/toolPins.mjs). Pour changer de version :
+- **Quand :** vérification 5 secondes après le lancement, puis toutes les 6 heures. Rien n'est affiché si le réseau est absent.
+- **Application :** tout se prépare en arrière-plan et s'applique au lancement suivant, jamais pendant une animation.
+- **Vérification :** seul un manifeste signé par votre clé est accepté. Il fixe les empreintes de l'application et de Node. Une version plus ancienne, même bien signée, est refusée.
+- **En cas de panne :** si la nouvelle version ne démarre pas ou que l'interface ne s'affiche pas en 90 secondes, LADS revient seul à la précédente et ne retente plus cette version.
+- **Compte GitHub compromis :** la clé n'étant ni sur GitHub ni dans la CI, un attaquant ne peut pas pousser de code sur les postes par les mises à jour.
 
-1. Modifiez la version et les URL.
-2. Récupérez les empreintes : Deno publie un fichier `.sha256sum` par archive. Pour ffmpeg, calculez-la :
+## Dépannage à distance
 
-   ```bash
-   curl -fsSL https://github.com/eugeneware/ffmpeg-static/releases/download/VERSION/ffmpeg-win32-x64 | sha256sum
-   ```
+Le journal se trouve dans `%APPDATA%\lads\lads.log`. Il indique les versions lancées, les mises à jour, les retours arrière et les erreurs de téléchargement.
 
-3. Testez une installation à neuf, puis un téléchargement réel.
+## Sécurité du poste
 
-yt-dlp n'est pas épinglé : l'application vérifie la dernière version à chaque session et la contrôle avec le fichier `SHA2-256SUMS` de la release. Cela protège d'un fichier corrompu, mais pas d'une release GitHub compromise.
+LADS est conçu pour fonctionner avec Smart App Control actif, mais il ne le satisfait pas au sens strict : seul `node.exe` est vérifié, pas le code JavaScript qu'il exécute. C'est pourquoi les mises à jour sont signées séparément.
+
+**Limites :**
+
+- `yt-dlp.exe` et `ffmpeg.exe` restent des exécutables non signés. Windows les juge fichier par fichier : ils ont été acceptés lors des tests, mais une nouvelle version de yt-dlp pourrait être refusée, ou l'un de ses composants internes. La lecture continuerait, pas le téléchargement. Le journal en garde la trace.
+- Microsoft peut faire évoluer Smart App Control et bloquer ce fonctionnement.
+- La première installation repose sur une commande à lancer et sur `install.ps1`, dont l'authenticité dépend de GitHub : lancez-la vous-même.
+- Certains antivirus, dont Kaspersky, analysent aussi le trafic local et réécrivent les pages : ils peuvent ajouter des messages dans la console du navigateur, et leur comportement peut varier d'un poste à l'autre. La CSP est donc envoyée par un en-tête HTTP plutôt que dans le HTML.
+
+## Mettre à jour Node.js et les outils
+
+Node.js et ffmpeg sont épinglés par version et empreinte dans [`src/server/lib/toolPins.mjs`](../src/server/lib/toolPins.mjs). Après modification de Node.js, la release suivante le déploie sur les postes, en même temps que l'application.
+
+- **Node.js :** l'empreinte se trouve dans `https://nodejs.org/dist/vX.Y.Z/SHASUMS256.txt`, ligne `node-vX.Y.Z-win-x64.zip`.
+- **ffmpeg :** calculez-la :
+
+  ```bash
+  curl -fsSL https://github.com/eugeneware/ffmpeg-static/releases/download/VERSION/ffmpeg-win32-x64 | sha256sum
+  ```
+
+yt-dlp n'est pas épinglé : LADS vérifie la dernière version à chaque session et la contrôle avec le fichier `SHA2-256SUMS` de la release. Cela protège d'un fichier corrompu, mais pas d'une release yt-dlp compromise.
 
 ## Dépendances
 
