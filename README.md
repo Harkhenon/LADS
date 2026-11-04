@@ -31,7 +31,7 @@ LADS est une application de **gestion de playlists et de téléchargement YouTub
 
 ## 📥 Installation
 
-Téléchargez la dernière version de LADS depuis les **[releases GitHub](https://github.com/Harkhenon/lads/releases)** et installez le fichier `.exe`.
+Téléchargez la dernière version de LADS depuis les **[releases GitHub](https://github.com/Harkhenon/LADS/releases)** et installez le fichier `.exe`.
 
 ---
 
@@ -60,7 +60,7 @@ En mode développement, les téléchargements et les mises à jour sont simulés
 
 ## 🔄 Publication et mises à jour
 
-LADS vérifie les mises à jour sur `https://api.harkhenon.dev/lads`. Pour publier une version, configurer le serveur ou signer l'exécutable, voir **[docs/RELEASE.md](docs/RELEASE.md)**.
+LADS vérifie les mises à jour sur les [releases GitHub](https://github.com/Harkhenon/LADS/releases). Pour publier une version ou signer l'exécutable, voir **[docs/RELEASE.md](docs/RELEASE.md)**.
 
 ---
 

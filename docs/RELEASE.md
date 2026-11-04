@@ -8,11 +8,10 @@ GitHub Actions (.github/workflows/release.yaml)
         │  vérifie, construit Windows et Linux, signe si configuré,
         │  puis publie la GitHub Release d'un seul coup
         ▼
-scripts/sync-updates.sh (sur le serveur)
-        │  télécharge, vérifie les empreintes, publie les installeurs puis latest.yml
-        ▼
-https://api.harkhenon.dev/lads ──▶ electron-updater (dans l'application)
+Releases de Harkhenon/LADS ──▶ electron-updater (dans l'application)
 ```
+
+Le dépôt doit rester **public** : l'application lit les releases sans s'authentifier. S'il redevient privé, les mises à jour s'arrêtent pour tout le monde.
 
 ## Publier
 
@@ -22,7 +21,7 @@ Depuis `main`, à jour et sans modification en cours :
 npm run release -- patch
 ```
 
-Remplacez `patch` par `minor`, `major` ou un numéro précis. Un numéro comme `1.2.3-beta.1` crée une préversion, que le serveur de mises à jour ignore. Pour lancer les contrôles sans rien modifier :
+Remplacez `patch` par `minor`, `major` ou un numéro précis. Un numéro comme `1.2.3-beta.1` crée une préversion, que les versions stables de l'application ignorent. Pour lancer les contrôles sans rien modifier :
 
 ```bash
 npm run release -- patch --dry-run
@@ -34,43 +33,16 @@ Suivre le build :
 gh run list --workflow=release.yaml
 ```
 
-## Mise en place sur le serveur (une seule fois)
+## Avant la première release (une seule fois)
 
-Le dépôt étant privé, le serveur a besoin d'un jeton pour lire les releases.
-
-1. Créez un [jeton à accès fin](https://github.com/settings/personal-access-tokens/new) : dépôt `Harkhenon/lads` uniquement, permission **Contents : Read-only**.
-2. Sur le serveur, installez les prérequis et le script :
+1. Vérifiez une dernière fois ce qui deviendra public, puis rendez le dépôt public : sans cela, l'application ne pourra pas lire les releases.
 
    ```bash
-   sudo apt install jq curl openssl util-linux
-   sudo install -m 755 sync-updates.sh /usr/local/bin/lads-sync-updates
+   gh repo edit Harkhenon/LADS --visibility public --accept-visibility-change-consequences
    ```
 
-3. Enregistrez le jeton dans un fichier lisible par le seul compte qui lance la synchronisation :
-
-   ```bash
-   sudo install -m 600 -o www-data /dev/null /etc/lads-sync.env
-   sudoedit /etc/lads-sync.env
-   ```
-
-   Contenu du fichier :
-
-   ```
-   export GITHUB_TOKEN=github_pat_...
-   ```
-
-4. Planifiez la synchronisation (`sudo crontab -u www-data -e`), en adaptant le compte et le dossier servi :
-
-   ```
-   */15 * * * * . /etc/lads-sync.env && /usr/local/bin/lads-sync-updates /var/www/api.harkhenon.dev/lads
-   ```
-
-Sans nouvelle release, le script s'arrête aussitôt. En cas d'empreinte invalide, il ne publie rien et l'ancienne version reste servie.
-
-## Avant la première release de cette branche
-
-- **Testez la mise à jour depuis la 0.3.0** sur une machine ou une VM de test : installez la 0.3.0, publiez une préversion vers un flux de test, vérifiez que vos playlists sont conservées. Ce passage (Electron 32 vers 45) n'a pas pu être testé sans modifier une installation réelle.
-- Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise, le workflow se sert du jeton temporaire fourni par GitHub.
+2. Supprimez le secret GitHub `GH_TOKEN` : aucun workflow ne l'utilise.
+3. Publiez, installez cette version, puis publiez-en une deuxième : c'est le seul moyen de vérifier la mise à jour automatique de bout en bout. Vérifiez aussi que les playlists sont conservées.
 
 ## Signer le .exe
 
@@ -95,11 +67,11 @@ Aucun certificat ne supprime l'avertissement SmartScreen dès le premier jour : 
 | ------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Azure Artifact Signing**           | environ 9,99 $/mois                                    | Organisations US, Canada, UE, Royaume-Uni. Particuliers : US et Canada seulement | **Déjà câblé dans la CI**                                                                    |
 | **Certificat OV** (Certum, Sectigo…) | 150 à 300 $/an (Certum : dès 109 €/an selon revendeur) | Tout le monde, particuliers compris selon l'autorité                             | À adapter : clé sur jeton ou HSM                                                             |
-| Certum Open Source                   | 69 €, avec carte et lecteur                            | Logiciels libres ; acceptation par Microsoft à vérifier                          | Déconseillé tant que le dépôt est privé                                                      |
-| SignPath Foundation                  | Gratuit                                                | Projets open source éligibles                                                    | Impose un dépôt public                                                                       |
+| Certum Open Source                   | 69 €, avec carte et lecteur                            | Logiciels libres ; acceptation par Microsoft à vérifier                          | Possible une fois le dépôt public ; signature locale, workflow à adapter                     |
+| SignPath Foundation                  | Gratuit                                                | Projets open source éligibles                                                    | Possible une fois le dépôt public, sur acceptation du projet (conditions à vérifier)         |
 | Microsoft Store (MSIX)               | Gratuit                                                | Tous ; validation par Microsoft                                                  | Empaquetage et mises à jour à refaire ; un téléchargeur YouTube risque le refus (à vérifier) |
 
-**Recommandation :** Azure Artifact Signing si l'association « Regards étoilés » ou une autre structure légale peut être le titulaire. Sa fiche d'éligibilité doit être vérifiée au préalable : une source mentionne un historique d'au moins 3 ans. Sinon, un certificat OV au nom d'un particulier.
+**Recommandation :** Azure Artifact Signing si l'association « Regards étoilés » ou une autre structure légale peut être le titulaire. Sa fiche d'éligibilité doit être vérifiée au préalable : une source mentionne un historique d'au moins 3 ans. Sinon, un certificat OV au nom d'un particulier. Le dépôt étant public, une demande à SignPath Foundation vaut aussi l'essai : c'est gratuit, mais le projet doit être accepté.
 
 ### Activer Azure Artifact Signing
 

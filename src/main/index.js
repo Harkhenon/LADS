@@ -11,7 +11,7 @@ import { registerMediaProtocol } from './protocol'
 import { isSafeExternalUrl } from './lib/validation.mjs'
 
 // Identique à l'appId d'electron-builder.yml, repris par les raccourcis créés à l'installation.
-const APP_USER_MODEL_ID = 'com.electron.app'
+const APP_USER_MODEL_ID = 'dev.harkhenon.lads'
 
 // Seul le plein écran du lecteur a besoin d'une permission (ni caméra, ni micro, ni géolocalisation…).
 const ALLOWED_PERMISSIONS = ['fullscreen']
