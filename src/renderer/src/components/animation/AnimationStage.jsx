@@ -1,4 +1,5 @@
 import { ActionIcon, Box, Checkbox, Group, Slider, Stack, Text, Tooltip } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import {
   IconMaximize,
   IconMusic,
@@ -31,6 +32,7 @@ function formatTime(seconds) {
 
 AnimationStage.propTypes = {
   track: karaokeShape,
+  active: PropTypes.bool,
   isPlaying: PropTypes.bool.isRequired,
   autoAdvance: PropTypes.bool,
   onAutoAdvanceChange: PropTypes.func,
@@ -44,6 +46,7 @@ AnimationStage.propTypes = {
 
 export default function AnimationStage({
   track,
+  active = true,
   isPlaying,
   autoAdvance = true,
   onAutoAdvanceChange,
@@ -90,6 +93,10 @@ export default function AnimationStage({
   }, [volume, mediaUrl])
 
   useEffect(() => {
+    // Les onglets restent montés : sans ce test, les raccourcis agiraient depuis les autres pages.
+    if (!active) {
+      return
+    }
     const onKeyDown = (event) => {
       const target = event.target
       if (
@@ -131,7 +138,7 @@ export default function AnimationStage({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [isPlaying, onPlay, onPause, onNext, onPrevious])
+  }, [active, isPlaying, onPlay, onPause, onNext, onPrevious])
 
   const handleFullscreen = () => {
     const el = stageRef.current
@@ -220,7 +227,15 @@ export default function AnimationStage({
               e.currentTarget.volume = volume
             }}
             onEnded={onEnded}
-            onError={() => {}}
+            onError={() => {
+              notifications.show({
+                title: 'Lecture impossible',
+                message: `Le fichier de « ${track?.title} » est introuvable ou illisible.`,
+                color: 'red',
+                autoClose: 6000
+              })
+              onPause()
+            }}
             style={{
               maxWidth: '100%',
               maxHeight: '100%',

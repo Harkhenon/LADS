@@ -1,6 +1,9 @@
 import { protocol } from 'electron'
-import { createReadStream, statSync, existsSync } from 'node:fs'
+import { createReadStream } from 'node:fs'
+import { stat } from 'node:fs/promises'
+import { extname } from 'node:path'
 import { Readable } from 'node:stream'
+import { isMediaFilePath, parseRangeHeader } from './lib/validation.mjs'
 
 const MEDIA_SCHEME = 'lads-media'
 const SCHEME_PREFIX = `${MEDIA_SCHEME}://`
@@ -22,60 +25,68 @@ const MIME_TYPES = {
   '.opus': 'audio/opus'
 }
 
-function contentTypeFor(filePath) {
-  const dot = filePath.lastIndexOf('.')
-  const ext = dot >= 0 ? filePath.slice(dot).toLowerCase() : ''
-  return MIME_TYPES[ext] ?? 'application/octet-stream'
-}
-
 function errorResponse(status, message) {
   return new Response(message, { status, headers: { 'Content-Type': 'text/plain' } })
 }
 
-export function registerMediaProtocol() {
-  protocol.handle(MEDIA_SCHEME, (request) => {
-    const filePath = decodeURIComponent(request.url.slice(SCHEME_PREFIX.length))
-    if (!existsSync(filePath)) {
-      return errorResponse(404, 'Fichier introuvable')
-    }
+function decodeFilePath(url) {
+  try {
+    return decodeURIComponent(url.slice(SCHEME_PREFIX.length))
+  } catch {
+    return null
+  }
+}
 
-    const stats = statSync(filePath)
-    const contentType = contentTypeFor(filePath)
-    const rangeHeader = request.headers.get('range')
+async function handleMediaRequest(request) {
+  const filePath = decodeFilePath(request.url)
+  // Seuls des médias sont servis : ce protocole ne doit pas pouvoir lire d'autres fichiers du poste.
+  if (!isMediaFilePath(filePath)) {
+    return errorResponse(403, 'Type de fichier non autorisé')
+  }
 
-    if (rangeHeader) {
-      const match = /bytes=(\d+)-(\d*)/.exec(rangeHeader)
-      if (!match) {
-        return errorResponse(416, 'Plage invalide')
-      }
-      const start = Number(match[1])
-      const end = match[2] ? Math.min(Number(match[2]), stats.size - 1) : stats.size - 1
-      if (start >= stats.size || start > end) {
-        return new Response(null, {
-          status: 416,
-          headers: { 'Content-Range': `bytes */${stats.size}` }
-        })
-      }
-      const stream = createReadStream(filePath, { start, end })
-      return new Response(Readable.toWeb(stream), {
-        status: 206,
-        headers: {
-          'Content-Type': contentType,
-          'Content-Length': String(end - start + 1),
-          'Content-Range': `bytes ${start}-${end}/${stats.size}`,
-          'Accept-Ranges': 'bytes'
-        }
+  let stats
+  try {
+    stats = await stat(filePath)
+  } catch {
+    return errorResponse(404, 'Fichier introuvable')
+  }
+  if (!stats.isFile()) {
+    return errorResponse(404, 'Fichier introuvable')
+  }
+
+  const contentType = MIME_TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream'
+  const rangeHeader = request.headers.get('range')
+
+  if (rangeHeader) {
+    const range = parseRangeHeader(rangeHeader, stats.size)
+    if (!range) {
+      return new Response(null, {
+        status: 416,
+        headers: { 'Content-Range': `bytes */${stats.size}` }
       })
     }
-
-    const stream = createReadStream(filePath)
+    const stream = createReadStream(filePath, range)
     return new Response(Readable.toWeb(stream), {
-      status: 200,
+      status: 206,
       headers: {
         'Content-Type': contentType,
-        'Content-Length': String(stats.size),
+        'Content-Length': String(range.end - range.start + 1),
+        'Content-Range': `bytes ${range.start}-${range.end}/${stats.size}`,
         'Accept-Ranges': 'bytes'
       }
     })
+  }
+
+  return new Response(Readable.toWeb(createReadStream(filePath)), {
+    status: 200,
+    headers: {
+      'Content-Type': contentType,
+      'Content-Length': String(stats.size),
+      'Accept-Ranges': 'bytes'
+    }
   })
+}
+
+export function registerMediaProtocol() {
+  protocol.handle(MEDIA_SCHEME, handleMediaRequest)
 }

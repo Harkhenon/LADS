@@ -1,6 +1,5 @@
 import { Box, Group, Image, Stack, Text } from '@mantine/core'
 import { IconEye } from '@tabler/icons-react'
-import { testSearchYouTube } from '../data/testFunctions'
 import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
 import { useState, useCallback } from 'react'
 import { notifications } from '@mantine/notifications'
@@ -18,7 +17,8 @@ const playlistShape = PropTypes.shape({
 
 TelechargementPage.propTypes = {
   playlists: PropTypes.arrayOf(playlistShape).isRequired,
-  setPlaylists: PropTypes.func.isRequired
+  setPlaylists: PropTypes.func.isRequired,
+  active: PropTypes.bool
 }
 
 const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'webm', 'opus', 'wav', 'flac']
@@ -37,8 +37,8 @@ function buildKaraokeFromDownload(config, filePath) {
   }
 }
 
-export default function TelechargementPage({ playlists, setPlaylists }) {
-  const { tools, error: installError, installed, retry } = useToolsInstall()
+export default function TelechargementPage({ playlists, setPlaylists, active = true }) {
+  const { tools, error: installError, installed, retry } = useToolsInstall(active)
 
   const handleDownloadCompleted = useCallback(
     ({ config, filePath }) => {
@@ -49,18 +49,13 @@ export default function TelechargementPage({ playlists, setPlaylists }) {
       setPlaylists((prev) =>
         prev.map((p) => (p.id === config.playlist ? { ...p, karaoke: [...p.karaoke, karaoke] } : p))
       )
-      window.playlists.update(
-        playlists.map((p) =>
-          p.id === config.playlist ? { ...p, karaoke: [...p.karaoke, karaoke] } : p
-        )
-      )
       notifications.show({
         message: 'Ajouté à la playlist sélectionnée.',
         color: 'pastelBlue',
         autoClose: 2500
       })
     },
-    [playlists, setPlaylists]
+    [setPlaylists]
   )
 
   const { downloads, startDownload, cancelDownload, removeDownload } = useDownloads({
@@ -71,12 +66,27 @@ export default function TelechargementPage({ playlists, setPlaylists }) {
   const [searched, setSearched] = useState(false)
   const [preview, setPreview] = useState(null)
   const [selectedVideo, setSelectedVideo] = useState(null)
+  const [searching, setSearching] = useState(false)
 
   const handleSearch = async () => {
-    testSearchYouTube(query)
-    setResults(await window.youtube.search(query))
-    setSearched(true)
-    setSelectedVideo(null)
+    if (!query.trim() || searching) {
+      return
+    }
+    setSearching(true)
+    try {
+      setResults(await window.youtube.search(query))
+      setSearched(true)
+      setSelectedVideo(null)
+    } catch {
+      notifications.show({
+        title: 'Recherche impossible',
+        message: 'YouTube n’a pas répondu. Vérifiez votre connexion puis réessayez.',
+        color: 'red',
+        autoClose: 5000
+      })
+    } finally {
+      setSearching(false)
+    }
   }
 
   return (
@@ -100,14 +110,16 @@ export default function TelechargementPage({ playlists, setPlaylists }) {
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               style={{ flex: 1 }}
             />
-            <Button onClick={handleSearch}>Rechercher</Button>
+            <Button onClick={handleSearch} loading={searching}>
+              Rechercher
+            </Button>
           </Group>
         </Box>
 
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
           <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
             <Text fw={600} mb="sm">
-              {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
+              {searched ? `${results.length} résultat(s) de recherche` : 'Résultats de recherche'}
             </Text>
             {results.length === 0 ? (
               <Text c="dimmed" size="sm" ta="center" mt="xl">
@@ -186,7 +198,7 @@ function SearchResultItem({ result, selected, onSelect, onPreview }) {
     >
       <Group wrap="nowrap" justify="space-between">
         <Group gap="sm" wrap="nowrap">
-          <Image src={result?.thumbnails[0] ?? ''} className="yt-thumbnail" />
+          <Image src={result.thumbnails?.[0] ?? ''} className="yt-thumbnail" />
           <Stack gap={2} style={{ minWidth: 0 }}>
             <Text size="sm" fw={500} lineClamp={2}>
               {result.title}
@@ -248,7 +260,7 @@ function VideoPreviewModal({ result, onClose }) {
             src={result?.url}
             title="Lecteur vidéo YouTube"
             frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; gyroscope; picture-in-picture; web-share"
+            allow="autoplay; encrypted-media; picture-in-picture"
             allowFullScreen
           ></iframe>
         </Box>
@@ -256,7 +268,7 @@ function VideoPreviewModal({ result, onClose }) {
           Lien :{' '}
           <a
             href={`https://youtube.com/watch?v=${result?.id}`}
-            rel="noreferer noreferrer"
+            rel="noopener noreferrer"
             target="_blank"
           >{`https://youtube.com/watch?v=${result?.id}`}</a>
         </Text>

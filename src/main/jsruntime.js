@@ -1,15 +1,13 @@
 import { app } from 'electron'
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { spawnSync } from 'node:child_process'
 import zlib from 'node:zlib'
+import { DENO, platformKey } from './lib/toolPins.mjs'
+import { binDir, fetchVerified, installBinary } from './tools'
 
 const NODE_MIN_VERSION = [22, 0, 0]
 const DENO_MIN_VERSION = [2, 3, 0]
-
-function binDir() {
-  return join(app.getPath('userData'), 'bin')
-}
 
 function denoPath() {
   return join(binDir(), process.platform === 'win32' ? 'deno.exe' : 'deno')
@@ -32,30 +30,29 @@ function versionAtLeast(version, min) {
   return true
 }
 
-function detectCommand(command, args) {
-  try {
-    const result = spawnSync(command, args, {
-      encoding: 'utf8',
-      timeout: 5000,
-      windowsHide: true,
-      shell: process.platform === 'win32'
-    })
-    if (result.error || result.status !== 0) {
-      return null
-    }
-    return parseVersionNumbers(`${result.stdout}${result.stderr}`)
-  } catch {
-    return null
-  }
+// Sans shell, et depuis un dossier maîtrisé : un `node.exe` déposé dans le dossier courant
+// ne peut pas être exécuté à la place de celui du PATH.
+function detectVersion(command, args) {
+  return new Promise((resolve) => {
+    execFile(
+      command,
+      args,
+      { encoding: 'utf8', timeout: 5000, windowsHide: true, cwd: app.getPath('userData') },
+      (error, stdout, stderr) => resolve(error ? null : parseVersionNumbers(`${stdout}${stderr}`))
+    )
+  })
 }
 
-export function detectSystemRuntime() {
-  const nodeVersion = detectCommand('node', ['--version'])
-  if (nodeVersion && versionAtLeast(nodeVersion, NODE_MIN_VERSION)) {
+async function isVersionAtLeast(command, min) {
+  const version = await detectVersion(command, ['--version'])
+  return version !== null && versionAtLeast(version, min)
+}
+
+async function detectSystemRuntime() {
+  if (await isVersionAtLeast('node', NODE_MIN_VERSION)) {
     return { spec: 'node' }
   }
-  const denoVersion = detectCommand('deno', ['--version'])
-  if (denoVersion && versionAtLeast(denoVersion, DENO_MIN_VERSION)) {
+  if (await isVersionAtLeast('deno', DENO_MIN_VERSION)) {
     return { spec: 'deno' }
   }
   return null
@@ -120,58 +117,28 @@ function extractDenoFromZip(zipBuffer) {
       return extractZipEntry(zipBuffer, entry)
     }
   }
-  throw new Error('Binaire deno introuvable dans l\u2019archive')
-}
-
-function denoAssetName() {
-  const arch = process.arch === 'arm64' ? 'aarch64' : 'x86_64'
-  if (process.platform === 'win32') {
-    return `deno-${arch}-pc-windows-msvc.zip`
-  }
-  if (process.platform === 'darwin') {
-    return `deno-${arch}-apple-darwin.zip`
-  }
-  return `deno-${arch}-unknown-linux-gnu.zip`
+  throw new Error('Binaire deno introuvable dans l’archive')
 }
 
 async function downloadDeno() {
-  const response = await fetch('https://api.github.com/repos/denoland/deno/releases/latest', {
-    headers: { 'User-Agent': 'LADS' }
-  })
-  if (!response.ok) {
-    throw new Error(`API GitHub injoignable (${response.status})`)
-  }
-  const release = await response.json()
-  const asset = release.assets.find((a) => a.name === denoAssetName())
+  const asset = DENO.assets[platformKey()]
   if (!asset) {
-    throw new Error(`Asset deno introuvable (${denoAssetName()})`)
+    throw new Error(`deno n'est pas disponible pour ${platformKey()}.`)
   }
-  const zipResponse = await fetch(asset.browser_download_url)
-  if (!zipResponse.ok) {
-    throw new Error(`Téléchargement de deno échoué (${zipResponse.status})`)
-  }
-  const zipBuffer = Buffer.from(await zipResponse.arrayBuffer())
-  const denoBinary = extractDenoFromZip(zipBuffer)
-  mkdirSync(binDir(), { recursive: true })
-  writeFileSync(denoPath(), denoBinary)
-  if (process.platform !== 'win32') {
-    chmodSync(denoPath(), 0o755)
-  }
+  const zipBuffer = await fetchVerified(`${DENO.baseUrl}/${asset.name}`, asset.sha256)
+  await installBinary(denoPath(), extractDenoFromZip(zipBuffer))
   return denoPath()
 }
 
-export async function ensureJsRuntime(listeners = {}) {
-  const system = detectSystemRuntime()
+export async function ensureJsRuntime() {
+  const system = await detectSystemRuntime()
   if (system) {
     return system
   }
-  if (existsSync(denoPath())) {
-    return { spec: `deno:${denoPath()}` }
+  const path = denoPath()
+  // Lancer le binaire écarte aussi un fichier tronqué laissé par une ancienne version.
+  if (existsSync(path) && (await isVersionAtLeast(path, DENO_MIN_VERSION))) {
+    return { spec: `deno:${path}` }
   }
-  listeners.onDownloadStart?.()
-  const path = await downloadDeno()
-  listeners.onReady?.()
-  return { spec: `deno:${path}` }
+  return { spec: `deno:${await downloadDeno()}` }
 }
-
-export { denoPath }

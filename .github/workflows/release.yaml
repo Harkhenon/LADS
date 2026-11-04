@@ -6,18 +6,46 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Check that the tag matches package.json
+        run: |
+          EXPECTED="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$EXPECTED" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME différent de la version de package.json ($EXPECTED)"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and test
+        run: npm run check
+
+  build:
+    needs: verify
     strategy:
-      fail-fast: false
       matrix:
         include:
           - os: windows-latest
-            build-cmd: npx electron-builder --win --publish never
+            platform: win
           - os: ubuntu-latest
-            build-cmd: npx electron-builder --linux --publish never
+            platform: linux
 
     runs-on: ${{ matrix.os }}
     defaults:
@@ -26,12 +54,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -40,31 +70,85 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Build installer
-        run: ${{ matrix.build-cmd }}
+      - name: Build installer (Linux)
+        if: matrix.platform == 'linux'
+        run: npx electron-builder --linux --publish never
+
+      # Sans secret de signature, l'installeur est produit non signé et un avertissement l'indique.
+      - name: Build installer (Windows)
+        if: matrix.platform == 'win'
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_CODE_SIGNING_ENDPOINT: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
-          AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT_NAME }}
-          AZURE_CODE_SIGNING_CERT_PROFILE_NAME: ${{ secrets.AZURE_CODE_SIGNING_CERT_PROFILE_NAME }}
-          AZURE_CODE_SIGNING_PUBLISHER_NAME: ${{ secrets.AZURE_CODE_SIGNING_PUBLISHER_NAME }}
+          SIGNING_ENDPOINT: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
+          SIGNING_ACCOUNT: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT_NAME }}
+          SIGNING_PROFILE: ${{ secrets.AZURE_CODE_SIGNING_CERT_PROFILE_NAME }}
+          SIGNING_PUBLISHER: ${{ secrets.AZURE_CODE_SIGNING_PUBLISHER_NAME }}
+        run: |
+          ARGS=(--win --publish never)
+          if [ -n "$SIGNING_ENDPOINT" ]; then
+            ARGS+=(
+              "-c.win.azureSignOptions.endpoint=$SIGNING_ENDPOINT"
+              "-c.win.azureSignOptions.codeSigningAccountName=$SIGNING_ACCOUNT"
+              "-c.win.azureSignOptions.certificateProfileName=$SIGNING_PROFILE"
+              "-c.win.azureSignOptions.publisherName=$SIGNING_PUBLISHER"
+            )
+          else
+            echo "::warning::Secrets de signature absents : installeur Windows NON signé."
+          fi
+          npx electron-builder "${ARGS[@]}"
+
+      - name: Check the signature (Windows)
+        if: matrix.platform == 'win'
+        shell: pwsh
+        env:
+          SIGNING_ENDPOINT: ${{ secrets.AZURE_CODE_SIGNING_ENDPOINT }}
+        run: |
+          $exe = Get-Item dist/*-setup.exe
+          $signature = Get-AuthenticodeSignature $exe.FullName
+          Write-Host "$($exe.Name) : $($signature.Status) $($signature.SignerCertificate.Subject)"
+          if ($env:SIGNING_ENDPOINT -and $signature.Status -ne 'Valid') {
+            Write-Error 'La signature attendue est absente ou invalide.'
+            exit 1
+          }
+
+      - name: Upload installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installers-${{ matrix.platform }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.blockmap
+            dist/latest*.yml
+
+  # Tout est publié d'un seul coup, seulement si tous les builds ont réussi :
+  # jamais de release partielle que le serveur de mises à jour pourrait récupérer.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: release
+        run: sha256sum -- * > SHA256SUMS.txt
 
       - name: Publish GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          if ! gh release view "$GITHUB_REF_NAME"; then
-            gh release create "$GITHUB_REF_NAME" \
-              --title "$GITHUB_REF_NAME" \
-              --generate-notes || true
-          fi
-          ARTIFACTS=$(find dist -maxdepth 1 -type f ! -name 'builder-debug.yml')
-          for attempt in 1 2 3 4 5; do
-            if gh release upload "$GITHUB_REF_NAME" $ARTIFACTS --clobber; then
-              exit 0
-            fi
-            sleep 15
-          done
-          exit 1
+          FLAGS=(--title "$GITHUB_REF_NAME" --generate-notes --verify-tag)
+          # Une version 1.2.3-beta.1 reste une préversion, ignorée par le serveur de mises à jour.
+          case "$GITHUB_REF_NAME" in *-*) FLAGS+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" "${FLAGS[@]}" release/*

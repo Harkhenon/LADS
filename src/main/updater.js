@@ -18,6 +18,11 @@ const UPDATE_EVENTS = [
   'error'
 ]
 
+const STARTUP_CHECK_DELAY_MS = 3000
+
+// Vrai pendant la vérification automatique : sans réseau (animation hors ligne), pas d'alerte.
+let silentCheck = false
+
 function broadcastEvent(event, args = []) {
   const payload = { event, args }
   for (const win of BrowserWindow.getAllWindows()) {
@@ -37,14 +42,23 @@ function configureAutoUpdater() {
   autoUpdater.autoInstallOnAppQuit = true
   for (const name of UPDATE_EVENTS) {
     autoUpdater.on(name, (...args) => {
+      if (name === 'error' && silentCheck) {
+        console.warn('[updater] vérification automatique échouée :', args[0]?.message)
+        return
+      }
       broadcastEvent(name, args.map(serializeArg))
     })
   }
 }
 
 function registerUpdaterIpc() {
-  ipcMain.handle(UPDATE_CHANNELS.check, () => autoUpdater.checkForUpdates())
-  ipcMain.handle(UPDATE_CHANNELS.download, () => autoUpdater.downloadUpdate())
+  ipcMain.handle(UPDATE_CHANNELS.check, async () => {
+    silentCheck = false
+    await autoUpdater.checkForUpdates()
+  })
+  ipcMain.handle(UPDATE_CHANNELS.download, async () => {
+    await autoUpdater.downloadUpdate()
+  })
   ipcMain.handle(UPDATE_CHANNELS.install, () => autoUpdater.quitAndInstall())
 }
 
@@ -80,8 +94,23 @@ export function initUpdater() {
     })
   } else {
     registerUpdaterIpc()
-    autoUpdater.checkForUpdates().catch(() => {})
   }
+}
+
+// À appeler une fois l'interface chargée : avant, l'événement « mise à jour disponible » serait perdu.
+export function scheduleStartupUpdateCheck() {
+  if (is.dev) {
+    return
+  }
+  setTimeout(() => {
+    silentCheck = true
+    autoUpdater
+      .checkForUpdates()
+      .catch(() => {})
+      .finally(() => {
+        silentCheck = false
+      })
+  }, STARTUP_CHECK_DELAY_MS)
 }
 
 export { UPDATE_CHANNELS }
