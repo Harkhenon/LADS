@@ -1,68 +1,56 @@
 import { AppShell, Container, Tabs } from '@mantine/core'
-import { IconHome, IconPlaylist, IconDownload, IconDeviceSpeaker } from '@tabler/icons-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AccueilPage from './components/AccueilPage'
 import AnimationPage from './components/AnimationPage'
+import AppNav from './components/AppNav'
 import PlaylistsPage from './components/PlaylistsPage'
 import TelechargementPage from './components/TelechargementPage'
-import { initialPlaylists } from './data/mockData'
 
 function App() {
   const [activeTab, setActiveTab] = useState('accueil')
-  const [playlists, setPlaylists] = useState(initialPlaylists)
+  const [playlists, setPlaylists] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const loaded = await window.playlists.read()
+      if (!cancelled) {
+        setPlaylists(loaded)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
-    <AppShell w="100vw" h="100vh" padding="md" layout="alt">
-      <AppShell.Main>
-        <Container fluid h="100%" p={0}>
-          <Tabs
-            value={activeTab}
-            onChange={setActiveTab}
-            orientation="vertical"
-            h="100%"
-            styles={{
-              root: { height: '100%' },
-              list: {
-                width: 220,
-                height: '100%',
-                alignItems: 'stretch'
-              }
-            }}
-          >
-            <Tabs.List>
-              <Tabs.Tab value="accueil" leftSection={<IconHome size={18} />}>
-                Accueil
-              </Tabs.Tab>
-              <Tabs.Tab value="playlists" leftSection={<IconPlaylist size={18} />}>
-                Playlists
-              </Tabs.Tab>
-              <Tabs.Tab value="telechargement" leftSection={<IconDownload size={18} />}>
-                Téléchargement
-              </Tabs.Tab>
-              <Tabs.Tab value="animation" leftSection={<IconDeviceSpeaker size={18} />}>
-                Animation
-              </Tabs.Tab>
-            </Tabs.List>
+    <Tabs value={activeTab} onChange={setActiveTab}>
+      <AppShell w="100vw" h="100vh" header={{ height: 56 }} padding="md">
+        <AppShell.Header withBorder>
+          <AppNav />
+        </AppShell.Header>
 
-            <Tabs.Panel value="accueil" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+        <AppShell.Main>
+          <Container fluid p={0} h="100%">
+            <Tabs.Panel value="accueil" h="100%">
               <AccueilPage onNavigate={setActiveTab} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="playlists" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+            <Tabs.Panel value="playlists" h="100%">
               <PlaylistsPage playlists={playlists} setPlaylists={setPlaylists} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="telechargement" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
-              <TelechargementPage playlists={playlists} />
+            <Tabs.Panel value="telechargement" h="100%">
+              <TelechargementPage playlists={playlists} setPlaylists={setPlaylists} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="animation" h="100%" style={{ minHeight: 0, paddingLeft: 16 }}>
+            <Tabs.Panel value="animation" h="100%">
               <AnimationPage playlists={playlists} />
             </Tabs.Panel>
-          </Tabs>
-        </Container>
-      </AppShell.Main>
-    </AppShell>
+          </Container>
+        </AppShell.Main>
+      </AppShell>
+    </Tabs>
   )
 }
 

@@ -93,7 +93,7 @@ export const resolutionOptions = [
 
 export const formatOptions = [
   { value: 'video', label: 'Vidéo (mp4)' },
-  { value: 'audio', label: 'Audio uniquement (mp3)' }
+  { value: 'audio', label: 'Audio uniquement (m4a)' }
 ]
 
 export const downloadLocationOptions = [

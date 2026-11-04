@@ -1,30 +1,33 @@
 import {
   ActionIcon,
+  Alert,
   Box,
   Button,
   Card,
   Grid,
   Group,
+  Kbd,
   Menu,
   ScrollArea,
   Stack,
   Text,
   Title
 } from '@mantine/core'
-import { IconDots, IconEdit, IconPlus, IconTrash } from '@tabler/icons-react'
+import {
+  IconDots,
+  IconEdit,
+  IconMusicPlus,
+  IconPlus,
+  IconTrash,
+  IconInfoCircle
+} from '@tabler/icons-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
-import {
-  testAddPlaylist,
-  testDeletePlaylist,
-  testDeleteKaraoke,
-  testUpdateKaraoke,
-  testUpdatePlaylist
-} from '../data/testFunctions'
+import { notifications } from '@mantine/notifications'
+import { testDeleteKaraoke, testUpdateKaraoke } from '../data/testFunctions'
+import { mediaFileToKaraoke } from '../utils/karaoke'
 import PlaylistFormModal from './PlaylistFormModal'
 import PlaylistKaraokeList from './PlaylistKaraokeList'
-
-let playlistCounter = 100
 
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -48,6 +51,27 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
 
   const selected = items.find((p) => p.id === selectedId) ?? null
 
+  const handleAddFiles = async () => {
+    const files = await window.media.pickFiles()
+    if (!files || files.length === 0) {
+      return
+    }
+    const karaokes = files.map(mediaFileToKaraoke)
+    const updated = items.map((p) =>
+      p.id === selectedId ? { ...p, karaoke: [...p.karaoke, ...karaokes] } : p
+    )
+    setPlaylists(updated)
+    await window.playlists.update(updated)
+    notifications.show({
+      message:
+        karaokes.length > 1
+          ? `${karaokes.length} fichiers ajoutés à « ${selected?.name} ».`
+          : `« ${karaokes[0].title} » ajouté à « ${selected?.name} ».`,
+      color: 'pastelBlue',
+      autoClose: 2500
+    })
+  }
+
   const openCreate = () => {
     setEditingPlaylist(null)
     setFormOpened(true)
@@ -58,21 +82,21 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     setFormOpened(true)
   }
 
-  const handlePlaylistSubmit = (values) => {
+  const handlePlaylistSubmit = async (values) => {
     if (editingPlaylist) {
       const updated = { ...editingPlaylist, ...values }
       setPlaylists((prev) => (prev ?? []).map((p) => (p.id === updated.id ? updated : p)))
-      testUpdatePlaylist(updated)
+      await window.playlists.update(items.map((p) => (p.id === updated.id ? updated : p)))
     } else {
       const created = {
-        id: `pl-${playlistCounter++}`,
+        id: `pl-${crypto.randomUUID()}`,
         name: values.name,
         description: values.description,
         karaoke: []
       }
       setPlaylists((prev) => [...(prev ?? []), created])
       setSelectedId(created.id)
-      testAddPlaylist(created)
+      await window.playlists.update([...items, created])
     }
     setFormOpened(false)
     setEditingPlaylist(null)
@@ -83,7 +107,7 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
     if (selectedId === id) {
       setSelectedId(null)
     }
-    testDeletePlaylist(id)
+    window.playlists.update(items.filter((p) => p.id !== id))
   }
 
   const handleUpdateKaraoke = (karaId, updated) => {
@@ -114,7 +138,10 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
           Nouvelle playlist
         </Button>
       </Group>
-
+      <Alert variant="filled" color="blue" title="Ajout de fichiers" icon={<IconInfoCircle />}>
+        Pour ajouter plusieurs fichiers d&apos;un coup, maintiens la touche <Kbd>CTRL</Kbd> et
+        clique sur les fichiers qui t&apos;intéressent !
+      </Alert>
       <Grid grow gutter="md" style={{ flex: 1, minHeight: 0 }}>
         <Grid.Col span={{ base: 12, md: 4 }} style={{ minHeight: 0 }}>
           <Card className="glass-card" p="0" h="100%" style={{ overflow: 'hidden' }}>
@@ -154,13 +181,22 @@ export default function PlaylistsPage({ playlists, setPlaylists }) {
                       </Text>
                     )}
                   </Stack>
-                  <Button
-                    variant="light"
-                    leftSection={<IconEdit size={16} />}
-                    onClick={() => openEdit(selected)}
-                  >
-                    Modifier
-                  </Button>
+                  <Group gap="xs">
+                    <Button
+                      variant="light"
+                      leftSection={<IconMusicPlus size={16} />}
+                      onClick={handleAddFiles}
+                    >
+                      Ajouter des fichiers
+                    </Button>
+                    <Button
+                      variant="light"
+                      leftSection={<IconEdit size={16} />}
+                      onClick={() => openEdit(selected)}
+                    >
+                      Modifier
+                    </Button>
+                  </Group>
                 </Group>
                 <Text size="sm" fw={500} mt="md">
                   Karaokés ({selected.karaoke.length})

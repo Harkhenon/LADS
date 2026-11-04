@@ -29,3 +29,18 @@ body {
   -webkit-backdrop-filter: blur(10px) saturate(130%);
   border: 1px solid rgba(120, 160, 240, 0.18);
 }
+
+.iframe {
+  container-type: inline-size;
+}
+
+.iframe > iframe {
+  width: 100cqw;
+  height: 50cqh;
+}
+
+.yt-thumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}

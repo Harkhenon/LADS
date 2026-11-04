@@ -1,9 +1,9 @@
 import { Button, Group, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
+import { notifications } from '@mantine/notifications'
 import PropTypes from 'prop-types'
 import { downloadLocationOptions, formatOptions, resolutionOptions } from '../data/mockData'
-import { testDownloadVideo } from '../data/testFunctions'
 
 DownloadConfigForm.propTypes = {
   playlists: PropTypes.arrayOf(
@@ -15,10 +15,11 @@ DownloadConfigForm.propTypes = {
   selectedVideo: PropTypes.shape({
     id: PropTypes.string,
     title: PropTypes.string
-  })
+  }),
+  onStartDownload: PropTypes.func.isRequired
 }
 
-export default function DownloadConfigForm({ playlists, selectedVideo }) {
+export default function DownloadConfigForm({ playlists, selectedVideo, onStartDownload }) {
   const items = playlists ?? []
 
   const form = useForm({
@@ -34,11 +35,25 @@ export default function DownloadConfigForm({ playlists, selectedVideo }) {
     }
   })
 
-  const handleSubmit = (values) => {
-    testDownloadVideo({
-      video: selectedVideo,
-      ...values
-    })
+  const handleSubmit = async (values) => {
+    try {
+      await onStartDownload({
+        videoId: selectedVideo.id,
+        title: selectedVideo.title,
+        ...values
+      })
+      notifications.show({
+        message: `« ${selectedVideo.title} » ajouté à la file de téléchargement.`,
+        color: 'pastelBlue',
+        autoClose: 2500
+      })
+    } catch (error) {
+      notifications.show({
+        message: String(error?.message ?? error),
+        color: 'red',
+        autoClose: 4000
+      })
+    }
   }
 
   return (

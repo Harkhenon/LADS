@@ -1,11 +1,15 @@
-import { Box, Group, Stack, Text } from '@mantine/core'
-import { IconEye, IconMusic } from '@tabler/icons-react'
-import { initialSearchResults } from '../data/mockData'
+import { Box, Group, Image, Stack, Text } from '@mantine/core'
+import { IconEye } from '@tabler/icons-react'
 import { testSearchYouTube } from '../data/testFunctions'
 import { ActionIcon, Card, TextInput, Button, Modal, SimpleGrid } from '@mantine/core'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { notifications } from '@mantine/notifications'
 import PropTypes from 'prop-types'
 import DownloadConfigForm from './DownloadConfigForm'
+import DownloadQueuePanel from './download/DownloadQueuePanel'
+import ToolsInstallOverlay from './download/ToolsInstallOverlay'
+import useDownloads from '../hooks/useDownloads'
+import useToolsInstall from '../hooks/useToolsInstall'
 
 const playlistShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -13,77 +17,140 @@ const playlistShape = PropTypes.shape({
 })
 
 TelechargementPage.propTypes = {
-  playlists: PropTypes.arrayOf(playlistShape).isRequired
+  playlists: PropTypes.arrayOf(playlistShape).isRequired,
+  setPlaylists: PropTypes.func.isRequired
 }
 
-export default function TelechargementPage({ playlists }) {
+const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'webm', 'opus', 'wav', 'flac']
+
+function buildKaraokeFromDownload(config, filePath) {
+  const ext = (filePath.split('.').pop() ?? '').toLowerCase()
+  const isAudio = AUDIO_EXTENSIONS.includes(ext)
+  return {
+    id: `k-${crypto.randomUUID()}`,
+    title: config.title,
+    format: isAudio ? ext : 'mp4',
+    resolution: isAudio ? 'audio' : config.resolution,
+    duration: '',
+    addedAt: new Date().toISOString().slice(0, 10),
+    filePath
+  }
+}
+
+export default function TelechargementPage({ playlists, setPlaylists }) {
+  const { tools, error: installError, installed, retry } = useToolsInstall()
+
+  const handleDownloadCompleted = useCallback(
+    ({ config, filePath }) => {
+      if (!config?.playlist || !filePath) {
+        return
+      }
+      const karaoke = buildKaraokeFromDownload(config, filePath)
+      setPlaylists((prev) =>
+        prev.map((p) => (p.id === config.playlist ? { ...p, karaoke: [...p.karaoke, karaoke] } : p))
+      )
+      window.playlists.update(
+        playlists.map((p) =>
+          p.id === config.playlist ? { ...p, karaoke: [...p.karaoke, karaoke] } : p
+        )
+      )
+      notifications.show({
+        message: 'Ajouté à la playlist sélectionnée.',
+        color: 'pastelBlue',
+        autoClose: 2500
+      })
+    },
+    [playlists, setPlaylists]
+  )
+
+  const { downloads, startDownload, cancelDownload, removeDownload } = useDownloads({
+    onCompleted: handleDownloadCompleted
+  })
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
   const [preview, setPreview] = useState(null)
   const [selectedVideo, setSelectedVideo] = useState(null)
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     testSearchYouTube(query)
-    setResults(initialSearchResults)
+    setResults(await window.youtube.search(query))
     setSearched(true)
     setSelectedVideo(null)
   }
 
   return (
-    <Stack gap="md" h="100%">
-      <Box>
-        <Text fw={600} mb="xs">
-          Rechercher une vidéo sur YouTube
-        </Text>
-        <Group>
-          <TextInput
-            placeholder="Titre de la chanson, artiste, URL…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            style={{ flex: 1 }}
-          />
-          <Button onClick={handleSearch}>Rechercher</Button>
-        </Group>
-      </Box>
-
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
-        <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
-          <Text fw={600} mb="sm">
-            {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
+    <Box pos="relative" h="100%">
+      <ToolsInstallOverlay
+        visible={!installed}
+        tools={tools}
+        error={installError}
+        onRetry={retry}
+      />
+      <Stack gap="md" h="100%" style={{ pointerEvents: installed ? undefined : 'none' }}>
+        <Box>
+          <Text fw={600} mb="xs">
+            Rechercher une vidéo sur YouTube
           </Text>
-          {results.length === 0 ? (
-            <Text c="dimmed" size="sm" ta="center" mt="xl">
-              {searched
-                ? 'Aucun résultat trouvé.'
-                : 'Lancez une recherche pour afficher les vidéos.'}
+          <Group>
+            <TextInput
+              placeholder="Titre de la chanson, artiste, URL…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              style={{ flex: 1 }}
+            />
+            <Button onClick={handleSearch}>Rechercher</Button>
+          </Group>
+        </Box>
+
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" style={{ flex: 1, minHeight: 0 }}>
+          <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+            <Text fw={600} mb="sm">
+              {searched ? '5 résultats de recherche' : 'Résultats de recherche'}
             </Text>
-          ) : (
-            <Stack gap="xs">
-              {results.map((r) => (
-                <SearchResultItem
-                  key={r.id}
-                  result={r}
-                  selected={selectedVideo?.id === r.id}
-                  onSelect={() => setSelectedVideo(r)}
-                  onPreview={() => setPreview(r)}
-                />
-              ))}
-            </Stack>
-          )}
-        </Card>
+            {results.length === 0 ? (
+              <Text c="dimmed" size="sm" ta="center" mt="xl">
+                {searched
+                  ? 'Aucun résultat trouvé.'
+                  : 'Lancez une recherche pour afficher les vidéos.'}
+              </Text>
+            ) : (
+              <Stack gap="xs">
+                {results.map((r) => (
+                  <SearchResultItem
+                    key={r.id}
+                    result={r}
+                    selected={selectedVideo?.id === r.id}
+                    onSelect={() => setSelectedVideo(r)}
+                    onPreview={() => setPreview(r)}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Card>
 
-        <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
-          <Text fw={600} mb="sm">
-            Options de téléchargement
-          </Text>
-          <DownloadConfigForm playlists={playlists} selectedVideo={selectedVideo} />
-        </Card>
-      </SimpleGrid>
+          <Card className="glass-card" p="md" style={{ minHeight: 0, overflow: 'hidden' }}>
+            <Text fw={600} mb="sm">
+              Options de téléchargement
+            </Text>
+            <DownloadConfigForm
+              playlists={playlists}
+              selectedVideo={selectedVideo}
+              onStartDownload={startDownload}
+            />
+          </Card>
+        </SimpleGrid>
 
-      <VideoPreviewModal result={preview} onClose={() => setPreview(null)} />
-    </Stack>
+        <DownloadQueuePanel
+          downloads={downloads}
+          onCancel={cancelDownload}
+          onRemove={removeDownload}
+        />
+
+        <VideoPreviewModal result={preview} onClose={() => setPreview(null)} />
+      </Stack>
+    </Box>
   )
 }
 
@@ -91,6 +158,8 @@ const searchResultShape = PropTypes.shape({
   id: PropTypes.string,
   title: PropTypes.string,
   channel: PropTypes.string,
+  author: PropTypes.objectOf,
+  thumbnails: PropTypes.arrayOf,
   duration: PropTypes.string,
   url: PropTypes.string
 })
@@ -117,13 +186,13 @@ function SearchResultItem({ result, selected, onSelect, onPreview }) {
     >
       <Group wrap="nowrap" justify="space-between">
         <Group gap="sm" wrap="nowrap">
-          <IconMusic size={18} />
+          <Image src={result?.thumbnails[0] ?? ''} className="yt-thumbnail" />
           <Stack gap={2} style={{ minWidth: 0 }}>
             <Text size="sm" fw={500} lineClamp={2}>
               {result.title}
             </Text>
             <Text size="xs" c="dimmed">
-              {result.channel} · {result.duration}
+              {result.author.name} · {result.duration}
             </Text>
           </Stack>
         </Group>
@@ -161,7 +230,7 @@ function VideoPreviewModal({ result, onClose }) {
     >
       <Stack>
         <Text size="sm" c="dimmed">
-          {result?.channel} · {result?.duration}
+          {result?.author.name} · {result?.duration}
         </Text>
         <Box
           style={{
@@ -173,16 +242,23 @@ function VideoPreviewModal({ result, onClose }) {
             alignItems: 'center',
             justifyContent: 'center'
           }}
+          className="iframe"
         >
-          <Group gap="sm" c="dimmed">
-            <IconEye size={28} />
-            <Text c="white" size="sm">
-              Aperçu de la vidéo (lecteur intégré à venir)
-            </Text>
-          </Group>
+          <iframe
+            src={result?.url}
+            title="Lecteur vidéo YouTube"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          ></iframe>
         </Box>
         <Text size="xs" c="dimmed">
-          Lien : {result?.url}
+          Lien :{' '}
+          <a
+            href={`https://youtube.com/watch?v=${result?.id}`}
+            rel="noreferer noreferrer"
+            target="_blank"
+          >{`https://youtube.com/watch?v=${result?.id}`}</a>
         </Text>
       </Stack>
     </Modal>

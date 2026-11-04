@@ -1,17 +1,52 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import crypto from 'node:crypto'
 import { initUpdater } from './updater'
+import registerPlaylistsHandles from './playlists'
+import youtube from './youtube'
+import ytdlp from './ytdlp'
+import media from './media'
+import { registerMediaProtocol } from './protocol'
 
 const nonce = crypto.randomBytes(16).toString('base64')
 
+let splashWindow = null
+
+function createSplashWindow() {
+  const splash = new BrowserWindow({
+    width: 340,
+    height: 260,
+    frame: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    center: true,
+    show: true,
+    alwaysOnTop: true,
+    backgroundColor: '#0e1a30',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  })
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    splash.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/splash.html`)
+  } else {
+    splash.loadFile(join(__dirname, '../renderer/splash.html'))
+  }
+  return splash
+}
+
 function createWindow() {
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workArea
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: Math.round(screenWidth / 2),
+    height: Math.round((screenHeight * 3) / 4),
+    center: true,
     show: false,
     icon: join(__dirname, 'build/icon.svg'),
     autoHideMenuBar: true,
@@ -24,7 +59,9 @@ function createWindow() {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.once('ready-to-show', () => {
+    splashWindow?.close()
+    splashWindow = null
     mainWindow.show()
   })
 
@@ -59,8 +96,15 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  initUpdater()
+  registerMediaProtocol()
 
+  initUpdater()
+  registerPlaylistsHandles()
+  youtube()
+  ytdlp()
+  media()
+
+  splashWindow = createSplashWindow()
   createWindow()
 
   app.on('activate', function () {

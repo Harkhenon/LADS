@@ -1,17 +1,18 @@
 {
   "name": "lads",
   "desktopName": "LADS",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "An Electron App for loved mothers singers",
   "main": "./out/main/index.js",
   "author": "Harkhenon <isoka33@gmail.com>",
+  "license": "MIT",
   "homepage": "https://harkhenon.dev",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "node scripts/sync-icons.js && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
@@ -44,7 +45,9 @@
     "electron-updater": "^6.3.9",
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "youtubei.js": "^18.0.0",
+    "yt-dlp-wrap": "^2.3.12"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^2.1.0",
